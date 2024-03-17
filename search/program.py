@@ -4,6 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 
+BOARD_SIZE = 11
 
 def search(
     board: dict[Coord, PlayerColor], 
@@ -44,3 +45,21 @@ def search(
         PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
+
+    def find_closestCR(board, target):
+    min_dist = BOARD_SIZE
+    closest_piece = nullcontext
+    is_column = False
+    for piece in board:
+        if board[piece] == PlayerColor.RED:
+            column_dist = abs(target.c - piece.c)
+            row_dist = abs(target.r - piece.r)
+            if (column_dist or row_dist) < min_dist:
+                min_dist = min(column_dist, row_dist)
+                if column_dist < row_dist:
+                    is_column = True
+                else:
+                    is_column = False
+                closest_piece = piece
+
+    return [closest_piece, is_column]
