@@ -5,6 +5,18 @@ from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 from collections import deque
 
+class Moves:
+     """
+     This is the class to store a list of moves taken and the current state the board is 
+     after those moves. Along with this, it tracks how many blocks in the targeted block
+     row/column is filled. 
+     """
+     board: dict[Coord, PlayerColor]
+     actions: list[PlaceAction]
+     numBlocksFilledCol: int 
+     numBlocksFilledRow: int
+
+
 def search(
     board: dict[Coord, PlayerColor], 
     target: Coord
@@ -28,7 +40,7 @@ def search(
     # The render_board() function is handy for debugging. It will print out a
     # board state in a human-readable format. If your terminal supports ANSI
     # codes, set the `ansi` flag to True to print a colour-coded version!
-    print(render_board(board, target, ansi=False))
+    print(render_board(board, target, ansi=True))
 
     # Do some impressive AI stuff here to find the solution...
     # ...
@@ -41,6 +53,9 @@ def search(
     # return `None` instead of a list.
     queue = []
     
+
+    #If not queue:
+    # return none
     
     return [
         PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
@@ -49,13 +64,20 @@ def search(
     ]
 
 def columnCompleted(board, columnIndex):
+    """
+    Checks whether the column has been completely filled
+    """
     for i in range(11):
         if (board.get(Coord(i, columnIndex), None) == None):
             return False
     return True
 
 def rowCompleted(board, rowIndex):
+    """
+    Checks whether the column has been completely filled
+    """
     for i in range(11):
         if (board.get(Coord(rowIndex, i), None) == None):
             return False
     return True
+
