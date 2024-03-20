@@ -36,7 +36,7 @@ def search(
         A list of "place actions" as PlaceAction instances, or `None` if no
         solution is possible.
     """
-
+    
     # The render_board() function is handy for debugging. It will print out a
     # board state in a human-readable format. If your terminal supports ANSI
     # codes, set the `ansi` flag to True to print a colour-coded version!
@@ -63,16 +63,16 @@ def search(
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
 
-def columnCompleted(board, columnIndex):
+def rowCompleted(board, columnIndex):
     """
-    Checks whether the column has been completely filled
+    Checks whether the row has been completely filled
     """
     for i in range(11):
         if (board.get(Coord(i, columnIndex), None) == None):
             return False
     return True
 
-def rowCompleted(board, rowIndex):
+def columnCompleted(board, rowIndex):
     """
     Checks whether the column has been completely filled
     """
@@ -81,3 +81,41 @@ def rowCompleted(board, rowIndex):
             return False
     return True
 
+def straightVerticalBlock():
+    """
+    Provides coordinates for a generical shape of a straight vertical block
+    """
+    return [Coord(1,0), Coord(2, 0), Coord(3, 0), Coord(4, 0)]
+    
+def straightHorizontalBlock():
+    """
+    Provides coordinates for a generical shape of a straight Horizontal block
+    """
+    return [Coord(0, 1), Coord(0, 2), Coord(0, 3), Coord(0, 4)]
+
+def squareBlock():
+    """
+    Provides coordinates for a generical shape of Square block
+    """
+    return[Coord(1,0), Coord(2,0), Coord(1,1), Coord(2,1)]
+
+def TBlock():
+    """
+    Provides coordinates for a generical shape of a T Block
+    """
+    return[Coord(1,0), Coord(2,0), Coord(3,0), Coord(2,1)]
+def LBlock():
+    """
+    Provides coordinates for a generical shape of a L block
+    """
+    return[Coord(1,0), Coord(2,0), Coord(1,1), Coord(1,2)]
+def JBlock():
+    """
+    Provides coordinates for a generical shape of a J block
+    """
+    return[Coord(1,0), Coord(2,0), Coord(2,1), Coord(2,2)]
+def ZBlock():
+    """
+    Provides coordinates for a generical shape of a Z block
+    """
+    return[Coord(1,0), Coord(1,1), Coord(2,1), Coord(2,2)]
