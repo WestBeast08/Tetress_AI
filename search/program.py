@@ -3,7 +3,7 @@
 
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
-
+from collections import deque
 
 def search(
     board: dict[Coord, PlayerColor], 
@@ -39,8 +39,23 @@ def search(
     # output format. Of course, you should instead return the result of your
     # search algorithm. Remember: if no solution is possible for a given input,
     # return `None` instead of a list.
+    queue = []
+    
+    
     return [
         PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
         PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
+
+def columnCompleted(board, columnIndex):
+    for i in range(11):
+        if (board.get(Coord(i, columnIndex), None) == None):
+            return False
+    return True
+
+def rowCompleted(board, rowIndex):
+    for i in range(11):
+        if (board.get(Coord(rowIndex, i), None) == None):
+            return False
+    return True
