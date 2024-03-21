@@ -1,6 +1,7 @@
 # COMP30024 Artificial Intelligence, Semester 1 2024
 # Project Part A: Single Player Tetress
 
+from contextlib import nullcontext
 from .core import PlayerColor, Coord, PlaceAction,  Direction
 from .utils import render_board
 from collections import deque
@@ -132,3 +133,21 @@ def checkSides(board: dict[Coord, PlayerColor], check: Coord):
         if (board.get(checking, None) == None):
             directions.append(checking)
     return directions
+
+def find_closestCR(board, target):
+    min_dist = BOARD_SIZE
+    closest_piece = nullcontext
+    is_column = False
+    for piece in board:
+        if board[piece] == PlayerColor.RED:
+            column_dist = abs(target.c - piece.c)
+            row_dist = abs(target.r - piece.r)
+            if (column_dist or row_dist) < min_dist:
+                min_dist = min(column_dist, row_dist)
+                if column_dist < row_dist:
+                    is_column = True
+                else:
+                    is_column = False
+                closest_piece = piece
+
+    return [closest_piece, is_column]
