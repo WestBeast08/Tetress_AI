@@ -1,9 +1,11 @@
 # COMP30024 Artificial Intelligence, Semester 1 2024
 # Project Part A: Single Player Tetress
 
-from .core import PlayerColor, Coord, PlaceAction
+from .core import PlayerColor, Coord, PlaceAction,  Direction
 from .utils import render_board
 from collections import deque
+
+BOARD_SIZE = 11 
 
 class Moves:
      """
@@ -36,7 +38,8 @@ def search(
         A list of "place actions" as PlaceAction instances, or `None` if no
         solution is possible.
     """
-    
+   
+
     # The render_board() function is handy for debugging. It will print out a
     # board state in a human-readable format. If your terminal supports ANSI
     # codes, set the `ansi` flag to True to print a colour-coded version!
@@ -63,21 +66,21 @@ def search(
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
 
-def rowCompleted(board, columnIndex):
+def rowCompleted(board: dict[Coord, PlayerColor], rowIndex: Coord):
     """
     Checks whether the row has been completely filled
     """
     for i in range(11):
-        if (board.get(Coord(i, columnIndex), None) == None):
+        if (board.get(Coord(i, rowIndex), None) == None):
             return False
     return True
 
-def columnCompleted(board, rowIndex):
+def columnCompleted(board: dict[Coord, PlayerColor], columnIndex: Coord):
     """
     Checks whether the column has been completely filled
     """
     for i in range(11):
-        if (board.get(Coord(rowIndex, i), None) == None):
+        if (board.get(Coord(columnIndex, i), None) == None):
             return False
     return True
 
@@ -119,3 +122,12 @@ def ZBlock():
     Provides coordinates for a generical shape of a Z block
     """
     return[Coord(1,0), Coord(1,1), Coord(2,1), Coord(2,2)]
+
+
+def checkSides(board: dict[Coord, PlayerColor], check: Coord):
+    directions = []
+    for value in Direction:
+        checking = Coord.__add__(check, value)
+        if (board.get(checking, None) == None):
+            directions.append(checking)
+    return directions
