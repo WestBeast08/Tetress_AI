@@ -5,9 +5,10 @@ from contextlib import nullcontext
 from .core import PlayerColor, Coord, PlaceAction,  Direction
 from .utils import render_board
 from collections import deque
-
+from dataclasses import dataclass
 BOARD_SIZE = 11 
 
+@dataclass(slots = True)
 class Moves:
      """
      This is the class to store a list of moves taken and the current state the board is 
@@ -20,10 +21,12 @@ class Moves:
      numBlocksFilledRow: int
 
 
+
 def search(
     board: dict[Coord, PlayerColor], 
     target: Coord
 ) -> list[PlaceAction] | None:
+    print(render_board(board, target, ansi=True))
     """
     This is the entry point for your submission. You should modify this
     function to solve the search problem discussed in the Part A specification.
@@ -40,27 +43,31 @@ def search(
         solution is possible.
     """
    
-
     # The render_board() function is handy for debugging. It will print out a
     # board state in a human-readable format. If your terminal supports ANSI
     # codes, set the `ansi` flag to True to print a colour-coded version!
-    print(render_board(board, target, ansi=True))
-
-    # Do some impressive AI stuff here to find the solution...
-    # ...
-    # ... (your solution goes here!)
-    # ...
-
-    # Here we're returning "hardcoded" actions as an example of the expected
-    # output format. Of course, you should instead return the result of your
-    # search algorithm. Remember: if no solution is possible for a given input,
-    # return `None` instead of a list.
-    queue = []
     
+    '''
+    Occurs when queue is empty
+    return none 
+    '''
+
 
     #If not queue:
     # return none
-    
+    queue = []
+    node = Moves(board, [], 0, 0)
+    queue.append(node)
+
+    while queue:
+        state = queue.pop(0)
+        closest = find_closestCR(board, target)
+        valid_space = checkSides(board, closest[0])
+        board.clear()
+        block = SBlock()
+        for co in block:
+            board[co] = PlayerColor.RED
+        print(render_board(board, target, ansi=True))
     return [
         PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
         PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
@@ -123,6 +130,9 @@ def ZBlock():
     Provides coordinates for a generical shape of a Z block
     """
     return[Coord(1,0), Coord(1,1), Coord(2,1), Coord(2,2)]
+
+def SBlock():
+    return[Coord(2,0), Coord(2,1), Coord(1,1), Coord(1,2)]
 
 
 
