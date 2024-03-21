@@ -63,11 +63,13 @@ def search(
         state = queue.pop(0)
         closest = find_closestCR(board, target)
         valid_space = checkSides(board, closest[0])
-        board.clear()
+        print(closest[0])
         block = SBlock()
-        for co in block:
-            board[co] = PlayerColor.RED
-        print(render_board(board, target, ansi=True))
+        for a in valid_space:
+            for c in block:
+                place = Coord.__add__(a, c)
+                board[place] = PlayerColor.RED
+            print(render_board(board, target, ansi=True))
     return [
         PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
         PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
@@ -96,43 +98,43 @@ def straightVerticalBlock():
     """
     Provides coordinates for a generical shape of a straight vertical block
     """
-    return [Coord(1,0), Coord(2, 0), Coord(3, 0), Coord(4, 0)]
+    return [Coord(0,0), Coord(1, 0), Coord(2, 0), Coord(3, 0)]
     
 def straightHorizontalBlock():
     """
     Provides coordinates for a generical shape of a straight Horizontal block
     """
-    return [Coord(0, 1), Coord(0, 2), Coord(0, 3), Coord(0, 4)]
+    return [Coord(0, 0), Coord(0, 1), Coord(0, 2), Coord(0, 3)]
 
 def squareBlock():
     """
     Provides coordinates for a generical shape of Square block
     """
-    return[Coord(1,0), Coord(2,0), Coord(1,1), Coord(2,1)]
+    return[Coord(0,0), Coord(0,1), Coord(1,0), Coord(1,1)]
 
 def TBlock():
     """
     Provides coordinates for a generical shape of a T Block
     """
-    return[Coord(1,0), Coord(2,0), Coord(3,0), Coord(2,1)]
+    return[Coord(0,0), Coord(1,0), Coord(2,0), Coord(1,1)]
 def LBlock():
     """
     Provides coordinates for a generical shape of a L block
     """
-    return[Coord(1,0), Coord(2,0), Coord(1,1), Coord(1,2)]
+    return[Coord(0,0), Coord(1,0), Coord(2,0), Coord(2,1)]
 def JBlock():
     """
     Provides coordinates for a generical shape of a J block
     """
-    return[Coord(1,0), Coord(2,0), Coord(2,1), Coord(2,2)]
+    return[Coord(0,0), Coord(1,0), Coord(1,1), Coord(1,2)]
 def ZBlock():
     """
     Provides coordinates for a generical shape of a Z block
     """
-    return[Coord(1,0), Coord(1,1), Coord(2,1), Coord(2,2)]
+    return[Coord(0,0), Coord(0,1), Coord(1,1), Coord(1,2)]
 
 def SBlock():
-    return[Coord(2,0), Coord(2,1), Coord(1,1), Coord(1,2)]
+    return[Coord(0,0), Coord(1,0), Coord(1,1), Coord(2,1)]
 
 
 
