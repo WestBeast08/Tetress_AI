@@ -84,27 +84,42 @@ def search(
 ]
     y_direction = 1
     x_direction = 1
+    #While the queue isn't empty
     while queue:
+        #Pop the first node from the list
         state = queue.pop(0)
+        #Find the closest red block to the target
         closest = find_closestCR(board, target)
+        #Find which sides can be extend on 
         valid_space = checkSides(board, closest[0])
         
-        #testing container
+        #For each side that a block can be placed 
         for a in valid_space:
             if (a == Direction.Up):
                 y_direction *= -1
             
             if(a == Direction.Left):
                 x_direction *= -1
-            
-
+            #For every block type
             for block in blocks:
-                test = board.copy()
+                current = board.copy()
+                block_placed = []
                 for c in block:
                     modified_c = Vector2(c.r * y_direction, c.c * x_direction)
                     place = Coord.__add__(valid_space[a], modified_c)
-                    test[place] = PlayerColor.RED
-                print(render_board(test, target, ansi=True))
+                    #checks whether a block can be placed there and no other blocks are in that location
+                    if (current.get(place, None) != None):
+                        block_placed.clear()
+                        break
+                        
+                    else:
+                        block_placed.append(place)
+                    #put blocks on the board
+                for completed in block_placed:
+                    
+                    current[completed] = PlayerColor.RED
+                
+                print(render_board(current, target, ansi=True))
             y_direction = 1
             x_direction = 1
                     
