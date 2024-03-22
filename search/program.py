@@ -2,7 +2,7 @@
 # Project Part A: Single Player Tetress
 
 from contextlib import nullcontext
-from .core import PlayerColor, Coord, PlaceAction,  Direction
+from .core import PlayerColor, Coord, PlaceAction,  Direction, Vector2
 from .utils import render_board
 from collections import deque
 from dataclasses import dataclass
@@ -63,8 +63,7 @@ def search(
         state = queue.pop(0)
         closest = find_closestCR(board, target)
         valid_space = checkSides(board, closest[0])
-        print(closest[0])
-        block = SBlock()
+        block = JBlockUp()
         for a in valid_space:
             for c in block:
                 place = Coord.__add__(a, c)
@@ -98,44 +97,81 @@ def straightVerticalBlock():
     """
     Provides coordinates for a generical shape of a straight vertical block
     """
-    return [Coord(0,0), Coord(1, 0), Coord(2, 0), Coord(3, 0)]
+    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]
     
 def straightHorizontalBlock():
     """
     Provides coordinates for a generical shape of a straight Horizontal block
     """
-    return [Coord(0, 0), Coord(0, 1), Coord(0, 2), Coord(0, 3)]
+    return [Vector2(0, 0), Vector2(0, 1), Vector2(0, 2), Vector2(0, 3)]
 
 def squareBlock():
     """
     Provides coordinates for a generical shape of Square block
     """
-    return[Coord(0,0), Coord(0,1), Coord(1,0), Coord(1,1)]
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1)]
 
 def TBlock():
     """
     Provides coordinates for a generical shape of a T Block
     """
-    return[Coord(0,0), Coord(1,0), Coord(2,0), Coord(1,1)]
-def LBlock():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1)]
+def LBlockUp():
     """
     Provides coordinates for a generical shape of a L block
     """
-    return[Coord(0,0), Coord(1,0), Coord(2,0), Coord(2,1)]
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1)]
 def JBlock():
     """
     Provides coordinates for a generical shape of a J block
     """
-    return[Coord(0,0), Coord(1,0), Coord(1,1), Coord(1,2)]
+    return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2)]
 def ZBlock():
     """
     Provides coordinates for a generical shape of a Z block
     """
-    return[Coord(0,0), Coord(0,1), Coord(1,1), Coord(1,2)]
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2)]
 
 def SBlock():
-    return[Coord(0,0), Coord(1,0), Coord(1,1), Coord(2,1)]
+    """
+    Provides coordinates for a generical shape of a S block
+    """
+    return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1)]
 
+#All are the variation of above blocks 
+
+def Tblockdown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
+
+
+def JBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
+
+def JBlockRight():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
+
+def LBlockRight():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
+
+def LBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
+
+def LBlockLeft():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1, 2)]
+
+def TBlockUp():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1,1)]
+
+def TBlockLeft():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
+
+def ZBlockVertical():
+    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
+
+def SBlockHorizontal():
+    return[Vector2(0,0), Vector2(0,1), Vector2(-1,1), Vector2(-1,2)]
+def JBlockUp():
+    return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
 
 
 def checkSides(board: dict[Coord, PlayerColor], check: Coord):
