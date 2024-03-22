@@ -4,9 +4,12 @@
 from contextlib import nullcontext
 from .core import PlayerColor, Coord, PlaceAction,  Direction, Vector2
 from .utils import render_board
-from collections import deque
 from dataclasses import dataclass
+from enum import Enum
 BOARD_SIZE = 11 
+
+
+
 
 @dataclass(slots = True)
 class Moves:
@@ -58,17 +61,55 @@ def search(
     queue = []
     node = Moves(board, [], 0, 0)
     queue.append(node)
-
+    blocks = [
+    straightHorizontalBlock(),
+    straightVerticalBlock(),
+    squareBlock(),
+    JBlock(),
+    JBlockDown(),
+    JBlockRight(),
+    JBlockUp(),
+    LBlockUp(),
+    LBlockRight(),
+    LBlockDown(),
+    LBlockLeft(),
+    TBlock(),
+    TBlockLeft(),
+    TBlockUp(),
+    Tblockdown(),
+    ZBlock(),
+    ZBlockVertical(),
+    SBlock(),
+    SBlockHorizontal()
+]
+    y_direction = 1
+    x_direction = 1
     while queue:
         state = queue.pop(0)
         closest = find_closestCR(board, target)
         valid_space = checkSides(board, closest[0])
-        block = JBlockUp()
+        
+        #testing container
         for a in valid_space:
-            for c in block:
-                place = Coord.__add__(a, c)
-                board[place] = PlayerColor.RED
-            print(render_board(board, target, ansi=True))
+            if (a == Direction.Up):
+                y_direction *= -1
+            
+            if(a == Direction.Left):
+                x_direction *= -1
+            
+
+            for block in blocks:
+                test = board.copy()
+                for c in block:
+                    modified_c = Vector2(c.r * y_direction, c.c * x_direction)
+                    place = Coord.__add__(valid_space[a], modified_c)
+                    test[place] = PlayerColor.RED
+                print(render_board(test, target, ansi=True))
+            y_direction = 1
+            x_direction = 1
+                    
+
+                
     return [
         PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
         PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
@@ -175,11 +216,12 @@ def JBlockUp():
 
 
 def checkSides(board: dict[Coord, PlayerColor], check: Coord):
-    directions = []
+    directions = {}
+    
     for value in Direction:
         checking = Coord.__add__(check, value)
         if (board.get(checking, None) == None):
-            directions.append(checking)
+            directions[value] = checking
     return directions
 
 def find_closestCR(board, target):
