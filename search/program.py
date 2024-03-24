@@ -24,7 +24,6 @@ class Moves:
      numBlocksFilledRow: int
 
 
-
 def search(
     board: dict[Coord, PlayerColor], 
     target: Coord
@@ -54,7 +53,14 @@ def search(
     Occurs when queue is empty
     return none 
     '''
-
+  #Get block
+                #Check block can be placed
+                #If so put block
+                #Check if it completes the target row
+                #If yes, return
+                #if not, add it to the queue
+                #Else continue
+                #move the block up, down etc to see another valid condition
 
     #If not queue:
     # return none
@@ -62,8 +68,8 @@ def search(
     node = Moves(board, [], 0, 0)
     queue.append(node)
     blocks = [
-    straightHorizontalBlock(),
     straightVerticalBlock(),
+    straightHorizontalBlock(),
     squareBlock(),
     JBlock(),
     JBlockDown(),
@@ -81,6 +87,7 @@ def search(
     ZBlockVertical(),
     SBlock(),
     SBlockHorizontal()
+
 ]
     y_direction = 1
     x_direction = 1
@@ -102,27 +109,30 @@ def search(
                 x_direction *= -1
             #For every block type
             for block in blocks:
-                current = board.copy()
+                current = state.board.copy()
                 block_placed = []
                 for c in block:
+                    #Modifies the coordinates base on direction 
                     modified_c = Vector2(c.r * y_direction, c.c * x_direction)
                     place = Coord.__add__(valid_space[a], modified_c)
                     #checks whether a block can be placed there and no other blocks are in that location
                     if (current.get(place, None) != None):
                         block_placed.clear()
                         break
-                        
                     else:
                         block_placed.append(place)
                     #put blocks on the board
                 for completed in block_placed:
-                    
                     current[completed] = PlayerColor.RED
-                
+                if(len(block_placed) == 4):
+                    actions = state.actions.copy()
+                    actions.append(PlaceAction(*block_placed.copy()))
+                    queue.append(Moves(current.copy(), actions, 0, 0))
                 print(render_board(current, target, ansi=True))
+                alternate = check_possibilities(state.board.copy(), target, valid_space[a], block_placed, a)
             y_direction = 1
             x_direction = 1
-                    
+            
 
                 
     return [
@@ -148,6 +158,86 @@ def columnCompleted(board: dict[Coord, PlayerColor], columnIndex: Coord):
         if (board.get(Coord(columnIndex, i), None) == None):
             return False
     return True
+
+def checkSides(board: dict[Coord, PlayerColor], check: Coord):
+    directions = {}
+    
+    for value in Direction:
+        checking = Coord.__add__(check, value)
+        if (board.get(checking, None) == None):
+            directions[value] = checking
+    return directions
+
+def find_closestCR(board, target):
+    min_dist = BOARD_SIZE
+    closest_piece = nullcontext
+    is_column = False
+    for piece in board:
+        if board[piece] == PlayerColor.RED:
+            column_dist = abs(target.c - piece.c)
+            row_dist = abs(target.r - piece.r)
+            if (column_dist or row_dist) < min_dist:
+                min_dist = min(column_dist, row_dist)
+                if column_dist < row_dist:
+                    is_column = True
+                else:
+                    is_column = False
+                closest_piece = piece
+
+    return [closest_piece, is_column]
+
+def check_possibilities(board: dict[Coord, PlayerColor], target: Coord, valid_spot: Coord, blockCoords: list[Coord], direction: Direction):
+    #For directions 
+    #move the placed block coords in the direction
+    #Based on length/height of block
+    #Check if it has the valid spot coord in that list
+    #Also check if it didn't delete any blocks
+    #If it doesn't break
+    rCol = []
+    cCol = []
+    confirmed = []
+    #Checks height and width of block
+    for i in blockCoords:
+        rCol.append(i.r)
+        cCol.append(i.c)
+    rUnique = set(rCol).__len__()
+    cUnique = set(cCol).__len__()
+    if (direction == Direction.Up or direction == Direction.Down):
+        check = cUnique
+        directions = [Direction.Left, Direction.Right]
+    else:
+        check = rUnique
+        directions = [Direction.Up, Direction.Down]
+    
+    for d in directions:
+        for i in range(1, check):
+            newBoard = board.copy()
+            checkCoord = []
+            for coord in blockCoords:
+                newCoord = coord + (d * i)
+                checkCoord.append(newCoord)
+            #If gap in between blocks and side or block not supposed to be where it is 
+            #find distance between original location and move it in that direction
+            
+            #Checks if the original valid spot was there  
+            if (valid_spot in checkCoord):
+                for coord in checkCoord:
+                    if(board.get(coord, None) != None):
+                        print("lmao")
+                        #checkCoord.clear()
+                        #break
+                for completed in checkCoord:
+                    newBoard[completed] = PlayerColor.RED    
+                if (len(checkCoord) == 4):
+                    confirmed.append(checkCoord.copy())
+                print(render_board(newBoard, target, ansi=True))
+    return confirmed
+                    #probably should be a function
+            #Make new node if matches everything        
+        
+
+
+
 
 def straightVerticalBlock():
     """
@@ -230,29 +320,3 @@ def JBlockUp():
     return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
 
 
-def checkSides(board: dict[Coord, PlayerColor], check: Coord):
-    directions = {}
-    
-    for value in Direction:
-        checking = Coord.__add__(check, value)
-        if (board.get(checking, None) == None):
-            directions[value] = checking
-    return directions
-
-def find_closestCR(board, target):
-    min_dist = BOARD_SIZE
-    closest_piece = nullcontext
-    is_column = False
-    for piece in board:
-        if board[piece] == PlayerColor.RED:
-            column_dist = abs(target.c - piece.c)
-            row_dist = abs(target.r - piece.r)
-            if (column_dist or row_dist) < min_dist:
-                min_dist = min(column_dist, row_dist)
-                if column_dist < row_dist:
-                    is_column = True
-                else:
-                    is_column = False
-                closest_piece = piece
-
-    return [closest_piece, is_column]
