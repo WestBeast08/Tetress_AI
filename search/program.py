@@ -53,7 +53,7 @@ def search(
     Occurs when queue is empty
     return none 
     '''
-  #Get block
+                #Get block
                 #Check block can be placed
                 #If so put block
                 #Check if it completes the target row
@@ -61,33 +61,17 @@ def search(
                 #if not, add it to the queue
                 #Else continue
                 #move the block up, down etc to see another valid condition
-
+    #Need to do
+    #Make sure queue works
+    #make sure the board being copied worked
+    #Make sure that this continues more than one loop and that it is being stored correctly in the nodes
     #If not queue:
     # return none
     queue = []
     node = Moves(board, [], 0, 0)
     queue.append(node)
     blocks = [
-    straightVerticalBlock(),
-    straightHorizontalBlock(),
-    squareBlock(),
-    JBlock(),
-    JBlockDown(),
-    JBlockRight(),
-    JBlockUp(),
-    LBlockUp(),
-    LBlockRight(),
-    LBlockDown(),
-    LBlockLeft(),
-    TBlock(),
-    TBlockLeft(),
-    TBlockUp(),
-    Tblockdown(),
-    ZBlock(),
-    ZBlockVertical(),
-    SBlock(),
-    SBlockHorizontal()
-
+    JBlockUp()
 ]
     y_direction = 1
     x_direction = 1
@@ -109,6 +93,7 @@ def search(
                 x_direction *= -1
             #For every block type
             for block in blocks:
+                can_place = True
                 current = state.board.copy()
                 block_placed = []
                 for c in block:
@@ -117,19 +102,21 @@ def search(
                     place = Coord.__add__(valid_space[a], modified_c)
                     #checks whether a block can be placed there and no other blocks are in that location
                     if (current.get(place, None) != None):
-                        block_placed.clear()
-                        break
-                    else:
-                        block_placed.append(place)
+                        can_place = False
+                    block_placed.append(place)
                     #put blocks on the board
-                for completed in block_placed:
-                    current[completed] = PlayerColor.RED
-                if(len(block_placed) == 4):
+                if (can_place == True):
+                    for completed in block_placed:
+                        current[completed] = PlayerColor.RED
+                    #Writes the information to the node and puts it back into the list
                     actions = state.actions.copy()
                     actions.append(PlaceAction(*block_placed.copy()))
+                    #the 0, 0 are placeholders for values we might use for heuristics
                     queue.append(Moves(current.copy(), actions, 0, 0))
+                #testing purposes
                 print(render_board(current, target, ansi=True))
-                alternate = check_possibilities(state.board.copy(), target, valid_space[a], block_placed, a)
+                #Currently working on getting all possibilities with the block
+                alternate = check_possibilities(state.board.copy(), target, closest[0], valid_space[a], block_placed, a)
             y_direction = 1
             x_direction = 1
             
@@ -186,13 +173,14 @@ def find_closestCR(board, target):
 
     return [closest_piece, is_column]
 
-def check_possibilities(board: dict[Coord, PlayerColor], target: Coord, valid_spot: Coord, blockCoords: list[Coord], direction: Direction):
+def check_possibilities(board: dict[Coord, PlayerColor], target: Coord, build_upon: Coord, valid_spot: Coord, blockCoords: list[Coord], direction: Direction):
     #For directions 
     #move the placed block coords in the direction
     #Based on length/height of block
     #Check if it has the valid spot coord in that list
     #Also check if it didn't delete any blocks
     #If it doesn't break
+    #Needs to be check if working with all pieces
     rCol = []
     cCol = []
     confirmed = []
@@ -202,22 +190,77 @@ def check_possibilities(board: dict[Coord, PlayerColor], target: Coord, valid_sp
         cCol.append(i.c)
     rUnique = set(rCol).__len__()
     cUnique = set(cCol).__len__()
+    #directions based on what direction we are expanding 
     if (direction == Direction.Up or direction == Direction.Down):
-        check = cUnique
+        numBlocks = cUnique
+        freq = 0
+        for i in blockCoords:
+            if (i.c == valid_spot.c):
+                freq += 1
+                
         directions = [Direction.Left, Direction.Right]
+        
     else:
-        check = rUnique
-        directions = [Direction.Up, Direction.Down]
+        numBlocks = rUnique
+        freq = 0
+        for i in blockCoords:
+            if (i.r == valid_spot.r):
+                freq += 1
     
+        directions = [Direction.Up, Direction.Down]
+    #Based on the directions avaliable
     for d in directions:
-        for i in range(1, check):
+        print(d)
+        #Copy a board
+        checkCoord = blockCoords.copy()
+        #For the number of tiles we can move
+        for i in range(1, numBlocks):
             newBoard = board.copy()
-            checkCoord = []
-            for coord in blockCoords:
-                newCoord = coord + (d * i)
-                checkCoord.append(newCoord)
-            #If gap in between blocks and side or block not supposed to be where it is 
-            #find distance between original location and move it in that direction
+            for j in range(len(blockCoords)):
+                checkCoord[j] = checkCoord[j] + d
+            
+            checkNum = 0
+            #checks if there is a gap when there is not supposed to or is in blocks that is not supposed to be
+            if (d == Direction.Up or d == Direction.Down):
+                for check in checkCoord:
+                    if (check.r == valid_spot.r):
+                         checkNum = checkNum + 1  
+                if((valid_spot not in checkCoord ) and checkNum != 0 or build_upon in blockCoords):
+                    if (abs(checkNum - freq) == 0):
+                        multiplier = 1
+                    else:
+                        multiplier = abs(checkNum - freq)
+                    if build_upon in checkCoord:
+                        for i in range(len(checkCoord)):
+                                checkCoord[i] = checkCoord[i] + (direction * multiplier)
+                    elif valid_spot not in checkCoord:
+                        for i in range(len(checkCoord)):
+                                checkCoord[i] = checkCoord[i] + (direction * multiplier * -1)
+                    else:
+                        for i in range(len(checkCoord)):
+                            checkCoord[i] = checkCoord[i] + (direction * multiplier)            
+            else:
+                for check in checkCoord:
+                    if (check.c == valid_spot.c):
+                        checkNum = checkNum + 1
+                    
+                if(((valid_spot not in checkCoord)) and checkNum != 0 or build_upon in checkCoord):
+                    if (abs(checkNum - freq) == 0):
+                            multiplier = 1
+                    else:
+                            multiplier = abs(checkNum - freq)
+                    if build_upon in checkCoord:
+                        for i in range(len(checkCoord)):
+                                checkCoord[i] = checkCoord[i] + (direction * multiplier)
+                    elif valid_spot not in checkCoord:
+                        for i in range(len(checkCoord)):
+                            checkCoord[i] = checkCoord[i] + (direction * multiplier * -1)
+                    else:
+                            for i in range(len(checkCoord)):
+                                checkCoord[i] = checkCoord[i] + (direction * multiplier)
+                        
+
+         
             
             #Checks if the original valid spot was there  
             if (valid_spot in checkCoord):
@@ -226,11 +269,12 @@ def check_possibilities(board: dict[Coord, PlayerColor], target: Coord, valid_sp
                         print("lmao")
                         #checkCoord.clear()
                         #break
-                for completed in checkCoord:
-                    newBoard[completed] = PlayerColor.RED    
-                if (len(checkCoord) == 4):
-                    confirmed.append(checkCoord.copy())
-                print(render_board(newBoard, target, ansi=True))
+            for completed in checkCoord:
+                print(completed)
+                newBoard[completed] = PlayerColor.RED    
+            if (len(checkCoord) == 4):
+                confirmed.append(checkCoord.copy())
+            print(render_board(newBoard, target, ansi=True))
     return confirmed
                     #probably should be a function
             #Make new node if matches everything        
