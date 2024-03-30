@@ -23,11 +23,6 @@ class Moves:
      numBlocksFilledCol: int 
      numBlocksFilledRow: int
 
-@dataclass(slots = True)
-class HeapPQ:
-    size: int
-    count: int
-    heapArray: list[Moves]
 
 
 def search(
@@ -305,8 +300,16 @@ def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_s
                     confirmed.append(Moves(newBoard, actions, 0, 0))
         
     return confirmed
-                         
-        
+
+
+def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
+    '''
+    Adds specific piece to the board
+    '''
+    updatedBoard = board.copy()
+    for vector in piece:
+        board[placePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
+    return updatedBoard
 
 
 
@@ -392,37 +395,5 @@ def JBlockUp():
     return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
 
 
-'''
-def FindSolution(startingPosition, showSolution):
-    n = startingPosition
-
-    pushPriorityQueue(n)
-
-
-    exploredTable = []
-    hashTable = []
-    while priorityQueue:
-        n = priorityQueue.pop()
-        exploredNodes += 1
-        exploredTable.append(n)
-        if winningCondition(n):
-            solution = saveSolution(n)
-            solutionSize = n.depth
-            break
-        for action in queue:
-            playerMoved = applyAction(n, newNode, a)
-            generatedNodes += 1
-            if playerMoved is False or simpleCornerDeadlock(newNode):
-                free(newNode)
-                continue
-            flatMap = flattenMap(newNode)
-            if flatMap in hashTable:
-                duplicatedNodes += 1
-                free(newNode)
-                continue
-            hashTable = insertHashTable(flatMap)
-            priorityQueue.push(newNode)
-    return
-'''
 
 
