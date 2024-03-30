@@ -6,6 +6,7 @@ from .core import PlayerColor, Coord, PlaceAction,  Direction, Vector2
 from .utils import render_board
 from dataclasses import dataclass
 from enum import Enum
+from queue import PriorityQueue
 BOARD_SIZE = 11 
 
 
@@ -130,7 +131,7 @@ def search(
                     actions = state.actions.copy()
                     actions.append(PlaceAction(*block_placed.copy()))
                     
-                    if (rowCompleted(current, target.c) == True or columnCompleted(current, target.r) == True):
+                    if (rowBlocksFilled(current, target.c) == BOARD_SIZE or columnBlocksFilled(current, target.r) == BOARD_SIZE):
                         print(render_board(current, target, ansi=True))
                         return actions
                     #the 0, 0 are placeholders for values we might use for heuristics
@@ -140,7 +141,7 @@ def search(
                 #Currently working on getting all possibilities with the block
                 alternate = check_possibilities(state, target, closest[0], valid_space[a], block_placed, a)
                 for node in alternate:
-                    if (rowCompleted(current, target.c) == True or columnCompleted(current, target.r) == True):
+                    if (rowBlocksFilled(current, target.c) == BOARD_SIZE or columnBlocksFilled(current, target.r) == BOARD_SIZE):
                         print(render_board(current, target, ansi=True))
                         return actions
                     else:
@@ -155,23 +156,25 @@ def search(
     #     PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     # ]
 
-def rowCompleted(board: dict[Coord, PlayerColor], rowIndex: Coord):
+def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: Coord):
     """
     Checks whether the row has been completely filled
     """
+    filled = 0
     for i in range(11):
-        if (board.get(Coord(i, rowIndex), None) == None):
-            return False
-    return True
+        if (board.get(Coord(i, rowIndex), None) != None):
+            filled += 1
+    return filled
 
-def columnCompleted(board: dict[Coord, PlayerColor], columnIndex: Coord):
+def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: Coord):
     """
     Checks whether the column has been completely filled
     """
+    filled = 0
     for i in range(11):
-        if (board.get(Coord(columnIndex, i), None) == None):
-            return False
-    return True
+        if (board.get(Coord(columnIndex, i), None) != None):
+            filled += 1
+    return filled
 
 def checkSides(board: dict[Coord, PlayerColor], check: Coord):
     directions = {}
@@ -198,7 +201,7 @@ def find_closestCR(board, target):
                     is_column = False
                 closest_piece = piece
 
-    return [closest_piece, is_column]
+    return (closest_piece, is_column)
 
 def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_spot: Coord, blockCoords: list[Coord], direction: Direction):
     #For directions 
@@ -302,16 +305,27 @@ def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_s
     return confirmed
 
 
+
+
+def isValidPosition(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
+    for vector in piece:
+        if(placePosition.add(Coord(vector.r, vector.c)) > BOARD_SIZE and placePosition.add(Coord(vector.r, vector.c)) < 0):
+            return False
+        if(board[placePosition.add(Coord(vector.r, vector.c))]) != None:
+            return False
+    return True
+
 def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
     '''
-    Adds specific piece to the board
+    Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     '''
     updatedBoard = board.copy()
     for vector in piece:
-        board[placePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
+        updatedBoard[placePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
     return updatedBoard
 
-
+def filledHeuristic(board: dict[Coord, PlayerColor], target: Coord):
+    return rowBlocksFilled(board, target) + columnBlocksFilled(board, target)
 
 
 def straightVerticalBlock():
@@ -395,5 +409,23 @@ def JBlockUp():
     return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
 
 
+def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
+    '''
+    Uses a built-in priority queue storing the heuristic value, board, and total cost of the current state
+    (more description once finished)
+    '''
+    pq = PriorityQueue()
+    initialCost = 0
+    pq.put((filledHeuristic(board, target), board, initialCost))
+    
+    while not pq.empty():
+        heuristic, currentBoard, totalCost = pq.get()
 
+        if rowBlocksFilled(currentBoard, target) == BOARD_SIZE or columnBlocksFilled(currentBoard, target) == BOARD_SIZE:
+            return (currentBoard, totalCost)
+        
+        # now just need to loop over all possible moves for cost calculations
+
+
+    return (None, None)
 
