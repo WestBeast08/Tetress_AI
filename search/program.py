@@ -305,8 +305,8 @@ def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_s
     return confirmed
 
 
-
-
+#Probably not applicable since I forgot we have a reoccuring grid
+'''
 def isValidPosition(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
     for vector in piece:
         if(placePosition.add(Coord(vector.r, vector.c)) > BOARD_SIZE and placePosition.add(Coord(vector.r, vector.c)) < 0):
@@ -314,19 +314,27 @@ def isValidPosition(piece: list[Vector2], board: dict[Coord, PlayerColor], place
         if(board[placePosition.add(Coord(vector.r, vector.c))]) != None:
             return False
     return True
+'''
 
-def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
+# Make sure move is valid at placePosition before calling function
+def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Coord):
     '''
     Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     '''
     updatedBoard = board.copy()
+    relativePosition = pieceTranslation(piece, placePosition, translation)
     for vector in piece:
-        updatedBoard[placePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
+        updatedBoard[relativePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
     return updatedBoard
 
 def filledHeuristic(board: dict[Coord, PlayerColor], target: Coord):
     return rowBlocksFilled(board, target) + columnBlocksFilled(board, target)
 
+# Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
+def pieceTranslation(piece: list[Vector2], placePosition: Coord, translation: Coord):
+    if(translation in piece):
+        return placePosition + translation
+    return None
 
 def straightVerticalBlock():
     """
@@ -426,6 +434,25 @@ def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
         
         # now just need to loop over all possible moves for cost calculations
 
+        #for row in range(BOARD_SIZE):
+            #for col in range(BOARD_SIZE):
+        
+                # Most likely need a list of all pieces.
+                # Also might need a translation function that can allow for us to select any block of the piece as the placePosition
+        
+
+                #for each piece
+                    #for each rotation:
+                        #for each translation:
+                            #placePosition = Coord(col, row)
+        
+                            #checking for validity in terms of blocks in the way (check_possibilities probably has the right framework)
+                            #if isValidPosition(rotation, currentBoard, placePosition):
+        
+                                #newBoard = addMove(rotation, currentBoard, placePosition)
+                                #newCost = totalCost + 1
+                                #priority = newCost + filledHeuristic(newBoard, target)
+                                #pq.put((priority, newBoard, totalCost))
 
     return (None, None)
 
