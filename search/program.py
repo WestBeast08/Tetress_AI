@@ -336,12 +336,14 @@ def pieceTranslation(piece: list[Vector2], placePosition: Coord, translation: Co
         return placePosition + translation
     return None
 
+
+# (0,0) is the top most piece (leftmost if multiple in the same row). This is for consistency
+
 def straightVerticalBlock():
     """
     Provides coordinates for a generical shape of a straight vertical block
     """
-    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]
-    
+    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]   
 def straightHorizontalBlock():
     """
     Provides coordinates for a generical shape of a straight Horizontal block
@@ -354,67 +356,61 @@ def squareBlock():
     """
     return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1)]
 
-def TBlock():
+# 'Up' Rotation Relative to T shape
+def TBlockLeft():
     """
     Provides coordinates for a generical shape of a T Block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1)]
+def TblockUp():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
+def TBlockDown():
+    return[Vector2(0,0), Vector2(1,-1), Vector2(1,0), Vector2(1,1)]
+def TBlockRight():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
+
+# 'Up' Rotation Relative to L shape
 def LBlockUp():
     """
     Provides coordinates for a generical shape of a L block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1)]
-def JBlock():
+def LBlockRight():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
+def LBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
+def LBlockLeft():
+    return[Vector2(0,0), Vector2(1,0), Vector2(1,-1), Vector2(1,-2)]
+
+# 'Up' Rotation Relative to J shape
+def JBlockRight():
     """
     Provides coordinates for a generical shape of a J block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2)]
-def ZBlock():
+def JBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
+def JBlockLeft():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
+def JBlockUp():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,-1)]
+
+# Horizonal spans 3 across, 2 up. Vice versa for Vertical
+def ZBlockHorizontal():
     """
     Provides coordinates for a generical shape of a Z block
     """
     return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2)]
-
-def SBlock():
+def ZBlockVertical():
+    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
+def SBlockVertical():
     """
     Provides coordinates for a generical shape of a S block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1)]
-
-#All are the variation of above blocks 
-
-def Tblockdown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
-
-
-def JBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
-
-def JBlockRight():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
-
-def LBlockRight():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
-
-def LBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
-
-def LBlockLeft():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1, 2)]
-
-def TBlockUp():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1,1)]
-
-def TBlockLeft():
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
-
-def ZBlockVertical():
-    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
-
 def SBlockHorizontal():
-    return[Vector2(0,0), Vector2(0,1), Vector2(-1,1), Vector2(-1,2)]
-def JBlockUp():
-    return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,-1)]
+
 
 
 def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
@@ -436,23 +432,25 @@ def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
 
         #for row in range(BOARD_SIZE):
             #for col in range(BOARD_SIZE):
+                #if square is not a valid placement (ie not next to another red square):
+                    #continue
         
-                # Most likely need a list of all pieces.
-                # Also might need a translation function that can allow for us to select any block of the piece as the placePosition
-        
+                # Most likely need a list of all pieces. (is quite easy but in what format?)
 
-                #for each piece
-                    #for each rotation:
-                        #for each translation:
-                            #placePosition = Coord(col, row)
+                #for each piece: (we already have rotations represented as seperate pieces)
+                    #for each translation: (any block in a piece can be the a candidate to go in placePosition)
         
-                            #checking for validity in terms of blocks in the way (check_possibilities probably has the right framework)
-                            #if isValidPosition(rotation, currentBoard, placePosition):
+                        #placePosition = Coord(col, row)
         
-                                #newBoard = addMove(rotation, currentBoard, placePosition)
-                                #newCost = totalCost + 1
-                                #priority = newCost + filledHeuristic(newBoard, target)
-                                #pq.put((priority, newBoard, totalCost))
+                        # checking for validity in terms of blocks in the way (check_possibilities probably has the right framework)
+                        #if isValidPosition(piece, currentBoard, placePosition):
+        
+                            # havent figured out the logistics of the priority part but it should look something like this
+        
+                            #newBoard = addMove(piece, currentBoard, placePosition)
+                            #newCost = totalCost + 1
+                            #priority = newCost + filledHeuristic(newBoard, target)
+                            #pq.put((priority, newBoard, totalCost))
 
     return (None, None)
 
