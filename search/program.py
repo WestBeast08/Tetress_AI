@@ -185,6 +185,7 @@ def checkSides(board: dict[Coord, PlayerColor], check: Coord):
             directions[value] = checking
     return directions
 
+# Probably obsolete now, should make into a heuristic
 def find_closestCR(board, target):
     min_dist = BOARD_SIZE + BOARD_SIZE
     closest_piece = nullcontext
@@ -304,36 +305,45 @@ def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_s
         
     return confirmed
 
-
-
-
-def isValidPosition(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
-    for vector in piece:
-        if(placePosition.add(Coord(vector.r, vector.c)) > BOARD_SIZE and placePosition.add(Coord(vector.r, vector.c)) < 0):
-            return False
-        if(board[placePosition.add(Coord(vector.r, vector.c))]) != None:
-            return False
-    return True
-
-def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
+# Make sure move is valid at placePosition before calling function
+def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Coord):
     '''
     Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     '''
     updatedBoard = board.copy()
+    relativePosition = pieceTranslation(piece, placePosition, translation)
     for vector in piece:
-        updatedBoard[placePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
+        updatedBoard[relativePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
     return updatedBoard
 
-def filledHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return rowBlocksFilled(board, target) + columnBlocksFilled(board, target)
+# Maximum will be 20 since target block is counted (could maybe change to make it not counted)
+def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
+    return BOARD_SIZE * 2 - rowBlocksFilled(board, target) - columnBlocksFilled(board, target)
 
+# Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
+def pieceTranslation(piece: list[Vector2], placePosition: Coord, translation: Coord):
+    if(translation in piece):
+        return placePosition - translation
+    return None
+
+def isValidPosition(board: dict[Coord, PlayerColor], piece: list[Vector2], placePosition: Coord):
+    for block in piece:
+        if (placePosition + block) in board:
+            return False
+    return True
+
+def isValidSquare(board: dict[Coord, PlayerColor], square: Coord):
+    if square in board:
+        return False
+    return True
+
+# (0,0) is the top most piece (leftmost if multiple in the same row). This is for consistency
 
 def straightVerticalBlock():
     """
     Provides coordinates for a generical shape of a straight vertical block
     """
-    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]
-    
+    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]   
 def straightHorizontalBlock():
     """
     Provides coordinates for a generical shape of a straight Horizontal block
@@ -346,67 +356,61 @@ def squareBlock():
     """
     return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1)]
 
-def TBlock():
+# 'Up' Rotation Relative to T shape
+def TBlockLeft():
     """
     Provides coordinates for a generical shape of a T Block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1)]
+def TblockUp():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
+def TBlockDown():
+    return[Vector2(0,0), Vector2(1,-1), Vector2(1,0), Vector2(1,1)]
+def TBlockRight():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
+
+# 'Up' Rotation Relative to L shape
 def LBlockUp():
     """
     Provides coordinates for a generical shape of a L block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1)]
-def JBlock():
+def LBlockRight():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
+def LBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
+def LBlockLeft():
+    return[Vector2(0,0), Vector2(1,0), Vector2(1,-1), Vector2(1,-2)]
+
+# 'Up' Rotation Relative to J shape
+def JBlockRight():
     """
     Provides coordinates for a generical shape of a J block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2)]
-def ZBlock():
+def JBlockDown():
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
+def JBlockLeft():
+    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
+def JBlockUp():
+    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,-1)]
+
+# Horizonal spans 3 across, 2 up. Vice versa for Vertical
+def ZBlockHorizontal():
     """
     Provides coordinates for a generical shape of a Z block
     """
     return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2)]
-
-def SBlock():
+def ZBlockVertical():
+    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
+def SBlockVertical():
     """
     Provides coordinates for a generical shape of a S block
     """
     return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1)]
-
-#All are the variation of above blocks 
-
-def Tblockdown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
-
-
-def JBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
-
-def JBlockRight():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
-
-def LBlockRight():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
-
-def LBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
-
-def LBlockLeft():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1, 2)]
-
-def TBlockUp():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(-1,1)]
-
-def TBlockLeft():
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
-
-def ZBlockVertical():
-    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
-
 def SBlockHorizontal():
-    return[Vector2(0,0), Vector2(0,1), Vector2(-1,1), Vector2(-1,2)]
-def JBlockUp():
-    return[Vector2(0,0), Vector2(0,1), Vector2(-1, 1), Vector2(-2, 1)]
+    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,-1)]
+
 
 
 def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
@@ -416,16 +420,46 @@ def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
     '''
     pq = PriorityQueue()
     initialCost = 0
-    pq.put((filledHeuristic(board, target), board, initialCost))
+
+    # Is this the best way or format to store all the pieces/rotations?
+    pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
+              TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
+              JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
+    pq.put((emptyCellHeuristic(board, target), board, initialCost))
     
     while not pq.empty():
-        heuristic, currentBoard, totalCost = pq.get()
+
+        priority, currentBoard, totalCost = pq.get()
 
         if rowBlocksFilled(currentBoard, target) == BOARD_SIZE or columnBlocksFilled(currentBoard, target) == BOARD_SIZE:
             return (currentBoard, totalCost)
         
-        # now just need to loop over all possible moves for cost calculations
 
+        for row in range(BOARD_SIZE):
+            for col in range(BOARD_SIZE):
+
+                placePosition = Coord(col, row)
+                if not isValidSquare(currentBoard, placePosition):
+                    continue
+
+                for piece in pieces:
+
+                    # The sign of a translation will only ever be negative (as setup by our standardisation of pieces)
+                    # The negative is resolved in the pieceTranslation function itself
+                    for colTranslation in range(4):
+                        for rowTranslation in range(4):
+
+                            relativePosition = pieceTranslation(piece, placePosition, Coord(colTranslation, rowTranslation))
+        
+                            if isValidPosition(currentBoard, piece, relativePosition):
+        
+                                # havent figured out the logistics of the priority part but it should look something like this
+                                # The smaller the priority number is the better it is to expand upon
+        
+                                newBoard = addMove(piece, currentBoard, placePosition)
+                                newCost = totalCost + 1
+                                priority = newCost + emptyCellHeuristic(newBoard, target)
+                                pq.put((priority, newBoard, newCost))
 
     return (None, None)
 
