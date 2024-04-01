@@ -185,6 +185,7 @@ def checkSides(board: dict[Coord, PlayerColor], check: Coord):
             directions[value] = checking
     return directions
 
+# Probably obsolete now, should make into a heuristic
 def find_closestCR(board, target):
     min_dist = BOARD_SIZE + BOARD_SIZE
     closest_piece = nullcontext
@@ -304,18 +305,6 @@ def check_possibilities(state: Moves, target: Coord,  build_upon: Coord, valid_s
         
     return confirmed
 
-
-#Probably not applicable since I forgot we have a reoccuring grid
-'''
-def isValidPosition(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord):
-    for vector in piece:
-        if(placePosition.add(Coord(vector.r, vector.c)) > BOARD_SIZE and placePosition.add(Coord(vector.r, vector.c)) < 0):
-            return False
-        if(board[placePosition.add(Coord(vector.r, vector.c))]) != None:
-            return False
-    return True
-'''
-
 # Make sure move is valid at placePosition before calling function
 def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Coord):
     '''
@@ -327,15 +316,26 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         updatedBoard[relativePosition.add(Coord(vector.r, vector.c))] = PlayerColor.RED
     return updatedBoard
 
-def filledHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return rowBlocksFilled(board, target) + columnBlocksFilled(board, target)
+# Maximum will be 20 since target block is counted (could maybe change to make it not counted)
+def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
+    return BOARD_SIZE * 2 - rowBlocksFilled(board, target) - columnBlocksFilled(board, target)
 
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def pieceTranslation(piece: list[Vector2], placePosition: Coord, translation: Coord):
     if(translation in piece):
-        return placePosition + translation
+        return placePosition - translation
     return None
 
+def isValidPosition(board: dict[Coord, PlayerColor], piece: list[Vector2], placePosition: Coord):
+    for block in piece:
+        if (placePosition + block) in board:
+            return False
+    return True
+
+def isValidSquare(board: dict[Coord, PlayerColor], square: Coord):
+    if square in board:
+        return False
+    return True
 
 # (0,0) is the top most piece (leftmost if multiple in the same row). This is for consistency
 
@@ -420,37 +420,46 @@ def aStarSearch(board: dict[Coord, PlayerColor], target: Coord):
     '''
     pq = PriorityQueue()
     initialCost = 0
-    pq.put((filledHeuristic(board, target), board, initialCost))
+
+    # Is this the best way or format to store all the pieces/rotations?
+    pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
+              TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
+              JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
+    pq.put((emptyCellHeuristic(board, target), board, initialCost))
     
     while not pq.empty():
-        heuristic, currentBoard, totalCost = pq.get()
+
+        priority, currentBoard, totalCost = pq.get()
 
         if rowBlocksFilled(currentBoard, target) == BOARD_SIZE or columnBlocksFilled(currentBoard, target) == BOARD_SIZE:
             return (currentBoard, totalCost)
         
-        # now just need to loop over all possible moves for cost calculations
 
-        #for row in range(BOARD_SIZE):
-            #for col in range(BOARD_SIZE):
-                #if square is not a valid placement (ie not next to another red square):
-                    #continue
-        
-                # Most likely need a list of all pieces. (is quite easy but in what format?)
+        for row in range(BOARD_SIZE):
+            for col in range(BOARD_SIZE):
 
-                #for each piece: (we already have rotations represented as seperate pieces)
-                    #for each translation: (any block in a piece can be the a candidate to go in placePosition)
+                placePosition = Coord(col, row)
+                if not isValidSquare(currentBoard, placePosition):
+                    continue
+
+                for piece in pieces:
+
+                    # The sign of a translation will only ever be negative (as setup by our standardisation of pieces)
+                    # The negative is resolved in the pieceTranslation function itself
+                    for colTranslation in range(4):
+                        for rowTranslation in range(4):
+
+                            relativePosition = pieceTranslation(piece, placePosition, Coord(colTranslation, rowTranslation))
         
-                        #placePosition = Coord(col, row)
+                            if isValidPosition(currentBoard, piece, relativePosition):
         
-                        # checking for validity in terms of blocks in the way (check_possibilities probably has the right framework)
-                        #if isValidPosition(piece, currentBoard, placePosition):
+                                # havent figured out the logistics of the priority part but it should look something like this
+                                # The smaller the priority number is the better it is to expand upon
         
-                            # havent figured out the logistics of the priority part but it should look something like this
-        
-                            #newBoard = addMove(piece, currentBoard, placePosition)
-                            #newCost = totalCost + 1
-                            #priority = newCost + filledHeuristic(newBoard, target)
-                            #pq.put((priority, newBoard, totalCost))
+                                newBoard = addMove(piece, currentBoard, placePosition)
+                                newCost = totalCost + 1
+                                priority = newCost + emptyCellHeuristic(newBoard, target)
+                                pq.put((priority, newBoard, newCost))
 
     return (None, None)
 
