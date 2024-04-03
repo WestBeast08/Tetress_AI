@@ -57,13 +57,13 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
         
                                 # havent figured out the logistics of the priority part but it should look something like this
                                 # The smaller the priority number is the better it is to expand upon
-        
-                                newBoard = addMove(piece, currentBoard, placePosition, translation)
+                                newState = addMove(piece, currentBoard, placePosition, translation)
+                                newBoard = newState[0]
                                 currentMoves = moves.copy()
                                 specificPiece = piece.copy()
-                                for i in range(4):
-                                    specificPiece[i] += placePosition - translation
-                                currentMoves.append(specificPiece)
+                                # for i in range(4):
+                                #     specificPiece[i] += placePosition - translation
+                                currentMoves.append(PlaceAction(*newState[1]))
                                 newCost = totalCost + 1
                                 priority = newCost + emptyCellHeuristic(newBoard, target)
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
@@ -101,11 +101,13 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     '''
     Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     '''
+    coords = []
     updatedBoard = board.copy()
     relativePosition = placePosition - translation
     for vector in piece:
         updatedBoard[relativePosition + vector] = PlayerColor.RED
-    return updatedBoard
+        coords.append(relativePosition + vector)
+    return [updatedBoard, coords]
 
 # Maximum will be 20 since target block is counted (could maybe change to make it not counted)
 def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
