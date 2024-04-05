@@ -21,15 +21,11 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     initialCost = 0
     initialMoves = []
 
-    blocked = False
-    if(checkBlockedTargetRow(board, target) or checkBlockedTargetCol(board, target)):
-        blocked = True
-
     # Is this the best way or format to store all the pieces/rotations?
     pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
               JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
-    pq.put((emptyCellHeuristic(board, target, blocked), board, initialCost, initialMoves))
+    pq.put((emptyCellHeuristic(board, target), board, initialCost, initialMoves))
     
     while not pq.empty():
         
@@ -77,8 +73,8 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                     if columnBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:     
                                         for r in range(11):
                                             newBoard.pop(Coord(r, block.c))
-                                newCost = totalCost + 1
-                                priority = newCost + emptyCellHeuristic(newBoard, target, blocked)
+                                newCost = totalCost + 1.5
+                                priority = newCost + emptyCellHeuristic(newBoard, target)
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
 
     return None
@@ -142,40 +138,9 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         coords.append(relativePosition + vector)
     return [updatedBoard, coords]
 
-def find_closestCR(board, target):
-    min_dist = BOARD_SIZE + BOARD_SIZE
-    closest_piece = nullcontext
-    is_column = False
-    
-    for piece in board:
-        if board[piece] == PlayerColor.RED:
-            column_dist = abs(target.c - piece.c)
-            row_dist = abs(target.r - piece.r)
-            if (column_dist + row_dist < min_dist):
-                min_dist = column_dist + row_dist
-
-    return min_dist
-
-def checkBlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord): 
-    for block in range(BOARD_SIZE):
-        if(Coord(target.r, block) not in board):
-            if(Coord(target.r, (block + 1)%11) not in board or Coord(target.r, (block - 1)%11) not in board):
-                return False
-    return True
-
-def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord): 
-    for block in range(BOARD_SIZE):
-        if(Coord(block, target.c) not in board):
-            if(Coord((block + 1)%11, target.c) not in board or Coord((block - 1)%11, target.c) not in board):
-                return False
-    return True
-
 # Maximum will be 20 since target block is counted (could maybe change to make it not counted)
-def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord, blocked: bool):
-    if(blocked):
-        return BOARD_SIZE * 2 - rowBlocksFilled(board, target.r) - columnBlocksFilled(board, target.c)
-    return BOARD_SIZE * 2 - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))
-    #return BOARD_SIZE * 2 - rowBlocksFilled(board, target.r) - columnBlocksFilled(board, target.c)
+def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
+    return BOARD_SIZE * 2 - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c)) - min(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))/3.0
 
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
