@@ -26,14 +26,14 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     pq.put((emptyCellHeuristic(board, target), board, initialCost, initialMoves))
     
     while not pq.empty():
-
+        
         (priority, currentBoard, totalCost, moves) = MVheappop(pq.queue)
 
         if rowBlocksFilled(currentBoard, target.r) == BOARD_SIZE or columnBlocksFilled(currentBoard, target.c) == BOARD_SIZE:
             print(render_board(currentBoard, target, True))
             return moves
         
-
+        #print(render_board(currentBoard, target, True))
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
 
@@ -64,6 +64,13 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 # for i in range(4):
                                 #     specificPiece[i] += placePosition - translation
                                 currentMoves.append(PlaceAction(*newState[1]))
+                                for block in newState[1]:
+                                    if rowBlocksFilled(newBoard, block.r) == BOARD_SIZE and block.r != target.r:
+                                        for c in range(11):
+                                            newBoard.pop(Coord(block.r, c))
+                                    if columnBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:     
+                                        for r in range(11):
+                                            newBoard.pop(Coord(r, block.c))
                                 newCost = totalCost + 1
                                 priority = newCost + emptyCellHeuristic(newBoard, target)
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
@@ -83,6 +90,26 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
     filled = 0
     for i in range(11):
         if (board.get(Coord(rowIndex, i)) != None):
+            filled += 1
+    return filled
+
+def RedrowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
+    """
+    Checks whether the row has been completely filled
+    """
+    filled = 0
+    for i in range(11):
+        if (board.get(Coord(rowIndex, i)) == PlayerColor.RED):
+            filled += 1
+    return filled
+
+def RedcolumnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
+    """
+    Checks whether the column has been completely filled
+    """
+    filled = 0
+    for i in range(11):
+        if (board.get(Coord(i, columnIndex)) == PlayerColor.RED):
             filled += 1
     return filled
 
@@ -109,9 +136,25 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         coords.append(relativePosition + vector)
     return [updatedBoard, coords]
 
+def find_closestCR(board, target):
+    min_dist = BOARD_SIZE + BOARD_SIZE
+    closest_piece = nullcontext
+    is_column = False
+    
+    for piece in board:
+        if board[piece] == PlayerColor.RED:
+            column_dist = abs(target.c - piece.c)
+            row_dist = abs(target.r - piece.r)
+            if (column_dist + row_dist < min_dist):
+                min_dist = column_dist + row_dist
+
+    return min_dist
+
 # Maximum will be 20 since target block is counted (could maybe change to make it not counted)
 def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return BOARD_SIZE * 2 - rowBlocksFilled(board, target.r) - columnBlocksFilled(board, target.c)
+    return  -(max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))) 
+
+
 
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
