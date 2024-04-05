@@ -9,7 +9,8 @@ from enum import Enum
 from queue import PriorityQueue
 BOARD_SIZE = 11 
 
-
+#python -m search < test-vis1.csv
+#test-wrapping3.csv is not efficient (should be done in 5 moves)
 
 def search(board: dict[Coord, PlayerColor], target: Coord):
     '''
@@ -111,7 +112,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
 
 # Maximum will be 20 since target block is counted (could maybe change to make it not counted)
 def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return BOARD_SIZE * 2 - rowBlocksFilled(board, target.r) - columnBlocksFilled(board, target.c)
+    return BOARD_SIZE * 2 - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))
 
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
