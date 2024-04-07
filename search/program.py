@@ -10,10 +10,7 @@ from queue import PriorityQueue
 import math
 import time 
 BOARD_SIZE = 11 
-
-# python -m search < test-vis1.csv
-
-# tests maze2, twobranch2, removal4 are running for far too long
+PIECE_LENGTH = 4
 
 def search(board: dict[Coord, PlayerColor], target: Coord):
     start = time.time()
@@ -23,6 +20,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     pq = PriorityQueue()
     initialCost = 0
     initialMoves = []
+    
     # Is this the best way or format to store all the pieces/rotations?
     pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
@@ -32,7 +30,6 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     while not pq.empty():
         
         (priority, currentBoard, totalCost, moves) = MVheappop(pq.queue)
-            
         
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
@@ -45,8 +42,8 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                 
                     # The sign of a translation will only ever be negative (as setup by our standardisation of pieces)
                     # The negative is resolved in the pieceTranslation function itself
-                    for rowTranslation in range(4):
-                        for colTranslation in range(4):
+                    for rowTranslation in range(PIECE_LENGTH):
+                        for colTranslation in range(PIECE_LENGTH):
 
                             translation = Vector2(rowTranslation, colTranslation)
 
@@ -66,10 +63,10 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 #Checks whether a row or column needs to be removed
                                 for block in newState[1]:
                                     if rowBlocksFilled(newBoard, block.r) == BOARD_SIZE and block.r != target.r:
-                                        for c in range(11):
+                                        for c in range(BOARD_SIZE):
                                             newBoard.pop(Coord(block.r, c))
                                     if columnBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:     
-                                        for r in range(11):
+                                        for r in range(BOARD_SIZE):
                                             newBoard.pop(Coord(r, block.c))
                                 current_target = target
 
@@ -79,11 +76,11 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 
                                 
                                 if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
-                                        print(render_board(newBoard, target, True))
-                                        print(time.time() - start)
+                                        
                                         return currentMoves
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
-                             
+        
+                                 
        
        
     return None
@@ -95,7 +92,7 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
     Checks whether the row has been completely filled
     """
     filled = 0
-    for i in range(11):
+    for i in range(BOARD_SIZE):
         if (board.get(Coord(rowIndex, i)) != None):
             filled += 1
     return filled
@@ -104,7 +101,7 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
 def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
     
     filled = 0
-    for i in range(11):
+    for i in range(BOARD_SIZE):
         if (board.get(Coord(i, columnIndex)) != None):
             filled += 1
     return filled
@@ -120,7 +117,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     for vector in piece:
         updatedBoard[relativePosition + vector] = PlayerColor.RED
         coords.append(relativePosition + vector)
-    return [updatedBoard, coords]
+    return (updatedBoard, coords)
 
 #Finds the closest block to the target in terms of manhatten distance
 def find_closestCR(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
@@ -145,42 +142,101 @@ def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord)
     rowPieceLeft = rowEstimateNumberPiecesRemain(board, target)
     columnPieceLeft = columnEstimateRemainingPieces(board, target)
     #Checks whether a block can't be accessed in the column
-    if columnBlocksFilled(board, target.c) == BOARD_SIZE - 1:
-        for i in range(11):
-            if board.get(Coord(i, target.c)) == None:
-                find = Coord(i, target.c)
-                break
-        #Checks whether a block can't be accessed 
-        if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
-            #checks which the row above/below or column left/right will take the least blocks to give access to target column
-            rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
-            columns = min(columnEstimateRemainingPieces(board, find.left()), columnEstimateRemainingPieces(board, find.right()))
-            columnPieceLeft += min(rows, columns)
+    #Checks whether a block can't be accessed 
+    checkCol = checkBlockedTargetCol(board, target)
+    if checkCol[0] == True:
+        #checks which the row above/below or column left/right will take the least blocks to give access to target column
+        rows = min(rowEstimateNumberPiecesRemain(board, Coord(checkCol[1], target.c).up()), rowEstimateNumberPiecesRemain(board, Coord(checkCol[2], target.c)))
+        columns = min(columnEstimateRemainingPieces(board, target.left()), columnEstimateRemainingPieces(board, target.right()))
+        columnPieceLeft += min(rows, columns)
 
     #Checks whether a block can't be accessed in the row
-    if rowBlocksFilled(board, target.r) == BOARD_SIZE - 1:
-            for i in range(11):
-                if board.get(Coord(target.r, i)) == None:
-                    find = Coord(target.r, i)
-                    break
-             #Checks whether a block can't be accessed
-            if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
-                #checks which the row above/below or column left/right will take the least blocks to give access to target row
-                rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
-                columns = columnEstimateRemainingPieces(board, find.left()) + columnEstimateRemainingPieces(board, find.right())
-                rowPieceLeft += min(rows, columns)
+    checkRow = checkBlockedTargetRow(board, target)
+        #Checks whether a block can't be accessed
+    if checkRow[0] == True:
+        #checks which the row above/below or column left/right will take the least blocks to give access to target row
+        rows = min(rowEstimateNumberPiecesRemain(board, target.up()), rowEstimateNumberPiecesRemain(board, target.down()))
+        columns = columnEstimateRemainingPieces(board, Coord(target.r, checkRow[1]).left()) + columnEstimateRemainingPieces(board, Coord(target.r, checkRow[2]))
+        rowPieceLeft += min(rows, columns)
    
     return min(columnPieceLeft, rowPieceLeft)
+
+#Checks if a block cannot be reached in a row
+def checkBlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord): 
+    possibleBlock = False
+    filledBlock = False
+    blocked = False
+    colStart = 0
+    colEnd = 0
+    for block in range(BOARD_SIZE):
+        #If block can't be accessed
+        if possibleBlock and Coord(target.r, block) in board:
+            possibleBlock = False
+            colStart = possibleColStart
+            blocked = True
+            colEnd = block 
+
+        #IF the block isn't filled, check if it can be accessed. 
+        elif filledBlock and Coord(target.r, block) not in board:
+            possibleColStart = block
+            possibleBlock = True
+            filledBlock = False
+            #Checks if block can be accessed from either row above or below it
+            if(Coord((target.r + 1)% BOARD_SIZE, block) not in board or Coord((target.r - 1)% BOARD_SIZE, block) not in board):
+                possibleBlock = False
+            
         
+        elif Coord(target.r, block) in board:
+            filledBlock = True
+
+    if blocked == False:
+        return (False, 0, 0)
+    
+    return (True, colStart, colEnd)
+
+#Checks if a block cannot be reached in a row
+def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord): 
+    possibleBlock = False
+    filledBlock = False
+    blocked = False
+    rowstart = 0
+    rowend = 0
+    for block in range(BOARD_SIZE):
+        #If block can't be accessed 
+        if possibleBlock and Coord(block, target.c) in board:
+            possibleBlock = False
+            rowstart = possiblerowstart
+            blocked = True
+            rowend = block 
+        #If block isn't filled and is in between a filled block, check if block can be accessed
+        elif filledBlock and Coord(block, target.c) not in board:
+            if(possibleBlock == False):
+                possiblerowstart = block
+            possibleBlock = True
+            filledBlock = False
+            #Checks if block can be accessed from either column above or below it
+            if(Coord(block , (target.c + 1)% BOARD_SIZE) not in board or Coord(block, (target.c -1)% BOARD_SIZE) not in board):
+                possibleBlock = False
+            
+        elif Coord(block, target.c) in board:
+            filledBlock = True
+            
+
+    if (blocked == False):
+        return (False, 0, 0)
+    
+    return (True, rowstart, rowend)
+
 #Estimates how many pieces we must place to complete a row 
 def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
     rowPieceLeft = 0
     count = 0
     check = 0
-    for i in range(11):
-        
+    for i in range(BOARD_SIZE):
+        #If a block is in the path
         if (board.get(Coord(target.r, i)) != None):
-            if (check != 0 and (check % 4 != 0 )):
+            #Check if another block can be placed based on other statistics 
+            if (check != 0 and (check % PIECE_LENGTH != 0 )):
                    
                     rowPieceLeft += 1
             check = 0
@@ -189,15 +245,15 @@ def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord)
         else:
             check += 1
         
+        #If board has blank space
         if board.get(Coord(target.r, i )) == None:
-                     
                      count += 1
-                    
-        if(count == 4):
+        #If the piece equals             
+        if(count == PIECE_LENGTH):
             rowPieceLeft += 1
             count = 0
             check = 0
-    if(check > 0 and check % 4 != 0):
+    if(check > 0 and check % PIECE_LENGTH != 0):
         rowPieceLeft += 1
   
     return rowPieceLeft
@@ -208,11 +264,11 @@ def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord
     columnPieceLeft = 0
     count = 0
     check = 0
-    for i in range(11):
+    for i in range(BOARD_SIZE):
 
         if (board.get(Coord(i, target.c)) != None ):
 
-            if (check != 0 and (check % 4 != 0 )):
+            if (check != 0 and (check % PIECE_LENGTH != 0 )):
                     columnPieceLeft += 1
             check = 0
             count = 0
@@ -223,11 +279,11 @@ def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord
         if board.get(Coord(i, target.c)) == None:
                      count += 1
 
-        if(count == 4):
+        if(count == PIECE_LENGTH):
             columnPieceLeft += 1
             count = 0
             check = 0
-    if(check > 0 and check % 4 != 0):
+    if(check > 0 and check % PIECE_LENGTH != 0):
         columnPieceLeft += 1
     return columnPieceLeft
 
