@@ -27,17 +27,12 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
               JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
-    pq.put((emptyCellHeuristic(board, target), board, initialCost, initialMoves))
+    pq.put((estimate_number_pieces_remain(board,target) + emptyCellHeuristic(board, target), board, initialCost, initialMoves))
     
     while not pq.empty():
         
         (priority, currentBoard, totalCost, moves) = MVheappop(pq.queue)
-        # print(priority)
-        # print(render_board(currentBoard, target, True))
-        # if rowBlocksFilled(currentBoard, target.r) == BOARD_SIZE or columnBlocksFilled(currentBoard, target.c) == BOARD_SIZE:
-        #     print(render_board(currentBoard, target, True))
-        #     print(time.time() - start)
-        #     return moves
+            
         
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
@@ -68,6 +63,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 currentMoves = moves.copy()
 
                                 currentMoves.append(PlaceAction(*newState[1]))
+                                #Checks whether a row or column needs to be removed
                                 for block in newState[1]:
                                     if rowBlocksFilled(newBoard, block.r) == BOARD_SIZE and block.r != target.r:
                                         for c in range(11):
@@ -83,8 +79,8 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 
                                 
                                 if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
-                                        # print(render_board(newBoard, target, True))
-                                        # print(time.time() - start)
+                                        print(render_board(newBoard, target, True))
+                                        print(time.time() - start)
                                         return currentMoves
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
                              
@@ -93,7 +89,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     return None
     
   
-
+#checks how many blocks in the targeted row are filled
 def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
     """
     Checks whether the row has been completely filled
@@ -104,11 +100,9 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
             filled += 1
     return filled
 
-
+#Checks how many blocks in targeted column are filled
 def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
-    """
-    Checks whether the column has been completely filled
-    """
+    
     filled = 0
     for i in range(11):
         if (board.get(Coord(i, columnIndex)) != None):
@@ -128,6 +122,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         coords.append(relativePosition + vector)
     return [updatedBoard, coords]
 
+#Finds the closest block to the target in terms of manhatten distance
 def find_closestCR(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
     min_dist = BOARD_SIZE + BOARD_SIZE
     
@@ -140,41 +135,45 @@ def find_closestCR(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: 
                         
     return min_dist
 
-
-# Maximum will be 20 since target block is counted (could maybe change to make it not counted)
 def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
     return  - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))
 
+
+
+#Estimates how many pieces still need to be placed within the target's row/column
 def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord):
     rowPieceLeft = rowEstimateNumberPiecesRemain(board, target)
     columnPieceLeft = columnEstimateRemainingPieces(board, target)
+    #Checks whether a block can't be accessed in the column
     if columnBlocksFilled(board, target.c) == BOARD_SIZE - 1:
         for i in range(11):
             if board.get(Coord(i, target.c)) == None:
                 find = Coord(i, target.c)
                 break
+        #Checks whether a block can't be accessed 
         if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
-           
+            #checks which the row above/below or column left/right will take the least blocks to give access to target column
             rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
             columns = min(columnEstimateRemainingPieces(board, find.left()), columnEstimateRemainingPieces(board, find.right()))
             columnPieceLeft += min(rows, columns)
+
+    #Checks whether a block can't be accessed in the row
     if rowBlocksFilled(board, target.r) == BOARD_SIZE - 1:
             for i in range(11):
                 if board.get(Coord(target.r, i)) == None:
                     find = Coord(target.r, i)
                     break
-
+             #Checks whether a block can't be accessed
             if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
-                
+                #checks which the row above/below or column left/right will take the least blocks to give access to target row
                 rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
                 columns = columnEstimateRemainingPieces(board, find.left()) + columnEstimateRemainingPieces(board, find.right())
                 rowPieceLeft += min(rows, columns)
    
     return min(columnPieceLeft, rowPieceLeft)
         
-
+#Estimates how many pieces we must place to complete a row 
 def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
-    
     rowPieceLeft = 0
     count = 0
     check = 0
@@ -203,6 +202,7 @@ def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord)
   
     return rowPieceLeft
 
+#Estimates how many pieces we must place to complete a column
 def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord):
     space = False
     columnPieceLeft = 0
@@ -230,6 +230,7 @@ def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord
     if(check > 0 and check % 4 != 0):
         columnPieceLeft += 1
     return columnPieceLeft
+
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
     if(translation in piece):
