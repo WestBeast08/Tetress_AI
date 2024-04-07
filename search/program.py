@@ -7,18 +7,20 @@ from .utils import render_board
 from dataclasses import dataclass
 from enum import Enum
 from queue import PriorityQueue
+import math
+import time 
 BOARD_SIZE = 11 
 
 
 
 def search(board: dict[Coord, PlayerColor], target: Coord):
+    start = time.time()
     '''
     Uses a min heap priority queue storing the heuristic value, board, total cost, and made moves of the current state
     '''
     pq = PriorityQueue()
     initialCost = 0
     initialMoves = []
-
     # Is this the best way or format to store all the pieces/rotations?
     pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
@@ -28,12 +30,13 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     while not pq.empty():
         
         (priority, currentBoard, totalCost, moves) = MVheappop(pq.queue)
-
-        if rowBlocksFilled(currentBoard, target.r) == BOARD_SIZE or columnBlocksFilled(currentBoard, target.c) == BOARD_SIZE:
-            print(render_board(currentBoard, target, True))
-            return moves
+        # print(priority)
+        # print(render_board(currentBoard, target, True))
+        # if rowBlocksFilled(currentBoard, target.r) == BOARD_SIZE or columnBlocksFilled(currentBoard, target.c) == BOARD_SIZE:
+        #     print(render_board(currentBoard, target, True))
+        #     print(time.time() - start)
+        #     return moves
         
-        #print(render_board(currentBoard, target, True))
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
 
@@ -42,6 +45,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                     continue
                 
                 for piece in pieces:
+                
                     # The sign of a translation will only ever be negative (as setup by our standardisation of pieces)
                     # The negative is resolved in the pieceTranslation function itself
                     for rowTranslation in range(4):
@@ -60,9 +64,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                 newState = addMove(piece, currentBoard, placePosition, translation)
                                 newBoard = newState[0]
                                 currentMoves = moves.copy()
-                                specificPiece = piece.copy()
-                                # for i in range(4):
-                                #     specificPiece[i] += placePosition - translation
+
                                 currentMoves.append(PlaceAction(*newState[1]))
                                 for block in newState[1]:
                                     if rowBlocksFilled(newBoard, block.r) == BOARD_SIZE and block.r != target.r:
@@ -71,17 +73,24 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
                                     if columnBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:     
                                         for r in range(11):
                                             newBoard.pop(Coord(r, block.c))
-                                newCost = totalCost + 1
-                                priority = newCost + emptyCellHeuristic(newBoard, target)
-                                MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
+                                current_target = target
 
+                                newCost = totalCost + 1
+                                priority = newCost + (estimate_number_pieces_remain(newBoard, current_target))
+                                priority = priority + 0.25 * find_closestCR(newBoard, current_target, board)
+                                
+                                
+                                if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
+                                        print(render_board(newBoard, target, True))
+                                        print(time.time() - start)
+                                        return currentMoves
+                                MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
+                             
+       
+       
     return None
     
-    # return [
-    #     PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
-    #     PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
-    #     PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
-    # ]
+  
 
 def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
     """
@@ -93,25 +102,6 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
             filled += 1
     return filled
 
-def RedrowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
-    """
-    Checks whether the row has been completely filled
-    """
-    filled = 0
-    for i in range(11):
-        if (board.get(Coord(rowIndex, i)) == PlayerColor.RED):
-            filled += 1
-    return filled
-
-def RedcolumnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
-    """
-    Checks whether the column has been completely filled
-    """
-    filled = 0
-    for i in range(11):
-        if (board.get(Coord(i, columnIndex)) == PlayerColor.RED):
-            filled += 1
-    return filled
 
 def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
     """
@@ -136,26 +126,108 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         coords.append(relativePosition + vector)
     return [updatedBoard, coords]
 
-def find_closestCR(board, target):
+def find_closestCR(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
     min_dist = BOARD_SIZE + BOARD_SIZE
-    closest_piece = nullcontext
-    is_column = False
     
     for piece in board:
-        if board[piece] == PlayerColor.RED:
-            column_dist = abs(target.c - piece.c)
-            row_dist = abs(target.r - piece.r)
-            if (column_dist + row_dist < min_dist):
-                min_dist = column_dist + row_dist
-
+        if board.get(piece) == PlayerColor.RED:
+                column_dist = abs(target.c - piece.c)
+                row_dist = abs(target.r - piece.r)
+                if(row_dist + column_dist <= min_dist):
+                        min_dist = row_dist + column_dist
+                        
     return min_dist
+
 
 # Maximum will be 20 since target block is counted (could maybe change to make it not counted)
 def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return  -(max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))) 
+    return  - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))
 
+def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord):
+    rowPieceLeft = rowEstimateNumberPiecesRemain(board, target)
+    columnPieceLeft = columnEstimateRemainingPieces(board, target)
+    if columnBlocksFilled(board, target.c) == BOARD_SIZE - 1:
+        for i in range(11):
+            if board.get(Coord(i, target.c)) == None:
+                find = Coord(i, target.c)
+                break
+        if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
+           
+            rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
+            columns = min(columnEstimateRemainingPieces(board, find.left()), columnEstimateRemainingPieces(board, find.right()))
+            columnPieceLeft += min(rows, columns)
+    if rowBlocksFilled(board, target.r) == BOARD_SIZE - 1:
+            for i in range(11):
+                if board.get(Coord(target.r, i)) == None:
+                    find = Coord(target.r, i)
+                    break
 
+            if (board.get(find.up()) and board.get(find.left()) and board.get(find.right()) and board.get(find.down())) != None:
+                
+                rows = min(rowEstimateNumberPiecesRemain(board, find.up()), rowEstimateNumberPiecesRemain(board, find.down()))
+                columns = columnEstimateRemainingPieces(board, find.left()) + columnEstimateRemainingPieces(board, find.right())
+                rowPieceLeft += min(rows, columns)
+   
+    return min(columnPieceLeft, rowPieceLeft)
+        
 
+def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
+    
+    rowPieceLeft = 0
+    count = 0
+    check = 0
+    for i in range(11):
+        
+        if (board.get(Coord(target.r, i)) != None):
+            if (check != 0 and (check % 4 != 0 )):
+                   
+                    rowPieceLeft += 1
+            check = 0
+            count = 0
+            continue       
+        else:
+            check += 1
+        
+        if board.get(Coord(target.r, i )) == None:
+                     
+                     count += 1
+                    
+        if(count == 4):
+            rowPieceLeft += 1
+            count = 0
+            check = 0
+    if(check > 0 and check % 4 != 0):
+        rowPieceLeft += 1
+  
+    return rowPieceLeft
+
+def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord):
+    space = False
+    columnPieceLeft = 0
+    count = 0
+    check = 0
+    for i in range(11):
+
+        if (board.get(Coord(i, target.c)) != None ):
+
+            if (check != 0 and (check % 4 != 0 )):
+                    columnPieceLeft += 1
+            check = 0
+            count = 0
+            continue
+        else:
+            check += 1
+
+        if board.get(Coord(i, target.c)) == None:
+                     count += 1
+
+        if(count == 4):
+            columnPieceLeft += 1
+            count = 0
+            check = 0
+    if(check > 0 and check % 4 != 0):
+        columnPieceLeft += 1
+    return columnPieceLeft
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
     if(translation in piece):
