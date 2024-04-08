@@ -5,15 +5,11 @@ from contextlib import nullcontext
 from .core import PlayerColor, Coord, PlaceAction,  Direction, Vector2
 from .utils import render_board
 from dataclasses import dataclass
-from enum import Enum
 from queue import PriorityQueue
-import math
-import time 
 BOARD_SIZE = 11 
 PIECE_LENGTH = 4
 
 def search(board: dict[Coord, PlayerColor], target: Coord):
-    start = time.time()
     '''
     Uses a min heap priority queue storing the heuristic value, board, total cost, and made moves of the current state
     '''
@@ -21,11 +17,12 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     initialCost = 0
     initialMoves = []
     
-    # Is this the best way or format to store all the pieces/rotations?
-    pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
+    pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TBlockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
               JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
-    pq.put((estimate_number_pieces_remain(board,target) + shortestManhattenDistance(board, target), board, initialCost, initialMoves))
+    
+    # Initial State
+    pq.put((estimatePiecesRemain(board,target) + shortestDistance(board, target), board, initialCost, initialMoves))
     
     while not pq.empty():
         
@@ -47,49 +44,43 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
 
                             translation = Vector2(rowTranslation, colTranslation)
 
-                            # this catches all
                             if not isValidTranslation(piece, translation):
                                 continue
 
                             if isValidPosition(currentBoard, piece, placePosition - translation):
         
-                                # havent figured out the logistics of the priority part but it should look something like this
-                                # The smaller the priority number is the better it is to expand upon
                                 newState = addMove(piece, currentBoard, placePosition, translation)
                                 newBoard = newState[0]
                                 currentMoves = moves.copy()
-
                                 currentMoves.append(PlaceAction(*newState[1]))
-                                #Checks whether a row or column needs to be removed
+
+                                #Checks whether a row or column needs to be cleared due to a completion
                                 for block in newState[1]:
                                     if rowBlocksFilled(newBoard, block.r) == BOARD_SIZE and block.r != target.r:
                                         for c in range(BOARD_SIZE):
                                             newBoard.pop(Coord(block.r, c))
-                                    if columnBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:     
+                                    if colBlocksFilled(newBoard, block.c) == BOARD_SIZE and block.c != target.c:
                                         for r in range(BOARD_SIZE):
                                             newBoard.pop(Coord(r, block.c))
                                 current_target = target
 
                                 newCost = totalCost + 1
-                                priority = newCost + (estimate_number_pieces_remain(newBoard, current_target))
-                                priority = priority + 0.25 * shortestManhattenDistance(newBoard, current_target)
+
+                                # The smaller the priority number is the better it is to expand upon
+                                priority = newCost + (estimatePiecesRemain(newBoard, current_target))
+                                priority = priority + 0.25 * shortestDistance(newBoard, current_target)
                                 
                                 
-                                if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
-                                        
+                                if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or colBlocksFilled(newBoard, target.c) == BOARD_SIZE:
                                         return currentMoves
+                                
                                 MVheappush(pq.queue, (priority, newBoard, newCost, currentMoves))
-        
-                                 
-       
-       
+
     return None
-    
-  
-#checks how many blocks in the targeted row are filled
+
 def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
     """
-    Checks whether the row has been completely filled
+    Checks how many blocks in the targeted row are filled
     """
     filled = 0
     for i in range(BOARD_SIZE):
@@ -97,20 +88,20 @@ def rowBlocksFilled(board: dict[Coord, PlayerColor], rowIndex: int):
             filled += 1
     return filled
 
-#Checks how many blocks in targeted column are filled
-def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
-    
+def colBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
+    """
+    Checks how many blocks in the targeted column are filled
+    """
     filled = 0
     for i in range(BOARD_SIZE):
         if (board.get(Coord(i, columnIndex)) != None):
             filled += 1
     return filled
 
-# Make sure move is valid at placePosition before calling function
 def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Vector2):
-    '''
-    Adds specific piece to the board (need to allow for moving in negative direction next after testing)
-    '''
+    """
+    Adds specific piece to the board returning the updated board and the coords of the added piece
+    """
     coords = []
     updatedBoard = board.copy()
     relativePosition = placePosition - translation
@@ -119,8 +110,10 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
         coords.append(relativePosition + vector)
     return (updatedBoard, coords)
 
-#Finds the closest block to the target in terms of manhatten distance
-def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord):
+def shortestDistance(board: dict[Coord, PlayerColor], target: Coord):
+    """
+    Finds the closest block to the target in terms of Manhatten distance
+    """
     min_dist = BOARD_SIZE + BOARD_SIZE
     
     for piece in board:
@@ -132,37 +125,39 @@ def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord):
                         
     return min_dist
 
-def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
-    return  - max(rowBlocksFilled(board, target.r), columnBlocksFilled(board, target.c))
-
-
-
-#Estimates how many pieces still need to be placed within the target's row/column
-def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord):
+def estimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
+    """
+    Estimates how many pieces still need to be placed to clear the target's row/column
+    """
     rowPieceLeft = rowEstimatePiecesRemain(board, target)
-    columnPieceLeft = columnEstimatePiecesRemain(board, target)
-    #Checks whether a block can't be accessed in the column
+    columnPieceLeft = colEstimatePiecesRemain(board, target)
 
-    checkCol = checkBlockedTargetCol(board, target)
+    #Checks whether a block can't be accessed in the column
+    checkCol = BlockedTargetCol(board, target)
+
     if checkCol[0] == True:
+
         #checks which the row above/below or column left/right will take the least blocks to give access to target column
         rows = min(rowEstimatePiecesRemain(board, Coord(checkCol[1], target.c).up()), rowEstimatePiecesRemain(board, Coord(checkCol[2], target.c)))
-        columns = min(columnEstimatePiecesRemain(board, target.left()), columnEstimatePiecesRemain(board, target.right()))
+        columns = min(colEstimatePiecesRemain(board, target.left()), colEstimatePiecesRemain(board, target.right()))
         columnPieceLeft += min(rows, columns)
 
     #Checks whether a block can't be accessed in the row
-    checkRow = checkBlockedTargetRow(board, target)
+    checkRow = BlockedTargetRow(board, target)
 
     if checkRow[0] == True:
+
         #checks which the row above/below or column left/right will take the least blocks to give access to target row
         rows = min(rowEstimatePiecesRemain(board, target.up()), rowEstimatePiecesRemain(board, target.down()))
-        columns = columnEstimatePiecesRemain(board, Coord(target.r, checkRow[1]).left()) + columnEstimatePiecesRemain(board, Coord(target.r, checkRow[2]))
+        columns = colEstimatePiecesRemain(board, Coord(target.r, checkRow[1]).left()) + colEstimatePiecesRemain(board, Coord(target.r, checkRow[2]))
         rowPieceLeft += min(rows, columns)
    
     return min(columnPieceLeft, rowPieceLeft)
 
-#Checks if a block cannot be reached in a row
-def checkBlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord): 
+def BlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord):
+    """
+    Checks if a blocks in a row cannot be currently reached
+    """
     possibleBlock = False
     filledBlock = False
     blocked = False
@@ -195,8 +190,10 @@ def checkBlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord):
     
     return (True, colStart, colEnd)
 
-#Checks if a block cannot be reached in a row
-def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord): 
+def BlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord): 
+    """
+    Checks if a blocks in a column cannot be currently reached
+    """
     possibleBlock = False
     filledBlock = False
     blocked = False
@@ -232,30 +229,35 @@ def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord):
     
     return (True, rowstart, rowend)
 
-#Estimates how many pieces we must place to complete a row 
 def rowEstimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
+    """
+    Estimates how many pieces we must place to clear the target's row 
+    """
     rowPieceLeft = 0
     count = 0
     check = 0
 
     for i in range(BOARD_SIZE):
-        #If a block is in the path
+
+        # If a block is in the path
         if (board.get(Coord(target.r, i)) != None):
-            #Check if another block can be placed based on other statistics 
-            if (check != 0 and (check % PIECE_LENGTH != 0 )):
-                   
-                    rowPieceLeft += 1
+
+            # Check if another block can be placed
+            if (check != 0 and (check % PIECE_LENGTH != 0 )):   
+                rowPieceLeft += 1
+
             check = 0
             count = 0
-            continue       
+            continue
+
         else:
             check += 1
         
-        #If board has blank space
+        # If the board has a blank space
         if board.get(Coord(target.r, i )) == None:
-                     count += 1
+                    count += 1
 
-        #If the piece equals             
+        # Check if the piece blocks have all been placed
         if(count == PIECE_LENGTH):
             rowPieceLeft += 1
             count = 0
@@ -265,81 +267,90 @@ def rowEstimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
   
     return rowPieceLeft
 
-#Estimates how many pieces we must place to complete a column
-def columnEstimatePiecesRemain(board: dict[Coord, PlayerColor], target: Coord):
-    
+def colEstimatePiecesRemain(board: dict[Coord, PlayerColor], target: Coord):
+    """
+    Estimates how many pieces we must place to clear the target's column
+    """
     columnPieceLeft = 0
     count = 0
     check = 0
     for i in range(BOARD_SIZE):
 
+        # If a block is in the path
         if (board.get(Coord(i, target.c)) != None ):
 
+            # Check if another block can be placed
             if (check != 0 and (check % PIECE_LENGTH != 0 )):
-                    columnPieceLeft += 1
+                columnPieceLeft += 1
+
             check = 0
             count = 0
             continue
+
         else:
             check += 1
 
+        # If the board has a blank space
         if board.get(Coord(i, target.c)) == None:
-                     count += 1
+                    count += 1
 
+        # Check if the piece blocks have all been placed
         if(count == PIECE_LENGTH):
             columnPieceLeft += 1
             count = 0
             check = 0
     if(check > 0 and check % PIECE_LENGTH != 0):
         columnPieceLeft += 1
+
     return columnPieceLeft
 
-# Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
 def isValidTranslation(piece: list[Vector2], translation: Vector2):
+    """
+    Checks if the specific piece can be translated the way described in 'translation'
+    """
     if(translation in piece):
         return True
     return False
 
 def isValidPosition(board: dict[Coord, PlayerColor], piece: list[Vector2], placePosition: Coord):
+    """
+    Checks if the position and translation of the piece does not overlap with any red or blue block
+    """
     for block in piece:
         if (placePosition + block) in board:
             return False
+
     return True
 
 def isValidSquare(board: dict[Coord, PlayerColor], square: Coord):
+    """
+    Checks if the square is adjacent to a red block
+    """
     if square in board:
         return False
-    for translation in (Vector2(0,1), Vector2(1,0), Vector2(0,-1), Vector2(-1,0)):
+
+    for translation in (Direction.Up(), Direction.Down(), Direction.Left(), Direction.Right()):
         if square + translation in board and board[square + translation] == PlayerColor.RED:
             return True
+
     return False
+
+
 
 # (0,0) is the top most piece (leftmost if multiple in the same row). This is for consistency
 
 def straightVerticalBlock():
-    """
-    Provides coordinates for a generical shape of a straight vertical block
-    """
     return (Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0))
 def straightHorizontalBlock():
-    """
-    Provides coordinates for a generical shape of a straight Horizontal block
-    """
     return (Vector2(0, 0), Vector2(0, 1), Vector2(0, 2), Vector2(0, 3))
 
 def squareBlock():
-    """
-    Provides coordinates for a generical shape of Square block
-    """
     return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1))
 
 # 'Up' Rotation Relative to T shape
 def TBlockLeft():
-    """
-    Provides coordinates for a generical shape of a T Block
-    """
     return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1))
-def TblockUp():
+def TBlockUp():
     return(Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1))
 def TBlockDown():
     return(Vector2(0,0), Vector2(1,-1), Vector2(1,0), Vector2(1,1))
@@ -348,9 +359,6 @@ def TBlockRight():
 
 # 'Up' Rotation Relative to L shape
 def LBlockUp():
-    """
-    Provides coordinates for a generical shape of a L block
-    """
     return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1))
 def LBlockRight():
     return(Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0))
@@ -361,9 +369,6 @@ def LBlockLeft():
 
 # 'Up' Rotation Relative to J shape
 def JBlockRight():
-    """
-    Provides coordinates for a generical shape of a J block
-    """
     return(Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2))
 def JBlockDown():
     return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0))
@@ -374,16 +379,10 @@ def JBlockUp():
 
 # Horizonal spans 3 across, 2 up. Vice versa for Vertical
 def ZBlockHorizontal():
-    """
-    Provides coordinates for a generical shape of a Z block
-    """
     return(Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2))
 def ZBlockVertical():
     return(Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1))
 def SBlockVertical():
-    """
-    Provides coordinates for a generical shape of a S block
-    """
     return(Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1))
 def SBlockHorizontal():
     return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,-1))
@@ -407,32 +406,25 @@ def MVsiftup(heap, pos):
     endpos = len(heap)
     startpos = pos
     newitem = heap[pos]
-    # Bubble up the smaller child until hitting a leaf.
-    childpos = 2*pos + 1    # leftmost child position
+    childpos = 2*pos + 1
     while childpos < endpos:
-        # Set childpos to index of smaller child.
         rightpos = childpos + 1
         if rightpos < endpos and not heap[childpos][0] < heap[rightpos][0]:
             childpos = rightpos
-        # Move the smaller child up.
         heap[pos] = heap[childpos]
         pos = childpos
         childpos = 2*pos + 1
-    # The leaf at pos is empty now.  Put newitem there, and bubble it up
-    # to its final resting place (by sifting its parents down).
     heap[pos] = newitem
     MVsiftdown(heap, startpos, pos)
 
 # Adapted from heapq.py to allow for comparison of priority but storage of a tuple
 def MVheappush(heap, item):
-    """Push item onto heap, maintaining the heap invariant."""
     heap.append(item)
     MVsiftdown(heap, 0, len(heap)-1)
 
 # Adapted from heapq.py to allow for comparison of priority but storage of a tuple
 def MVheappop(heap):
-    """Pop the smallest item off the heap, maintaining the heap invariant."""
-    lastelt = heap.pop()    # raises appropriate IndexError if heap is empty
+    lastelt = heap.pop()
     if heap:
         returnitem = heap[0]
         heap[0] = lastelt
