@@ -25,7 +25,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
     pieces = (straightVerticalBlock(), straightHorizontalBlock(), squareBlock(), TBlockLeft(), TblockUp(), TBlockDown(),
               TBlockRight(), LBlockUp(), LBlockDown(), LBlockLeft(), LBlockRight(), JBlockDown(), JBlockLeft(), JBlockRight(),
               JBlockUp(), ZBlockHorizontal(), ZBlockVertical(), SBlockHorizontal(), SBlockVertical())
-    pq.put((estimate_number_pieces_remain(board,target) + emptyCellHeuristic(board, target), board, initialCost, initialMoves))
+    pq.put((estimate_number_pieces_remain(board,target) + shortestManhattenDistance(board, target), board, initialCost, initialMoves))
     
     while not pq.empty():
         
@@ -72,7 +72,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
 
                                 newCost = totalCost + 1
                                 priority = newCost + (estimate_number_pieces_remain(newBoard, current_target))
-                                priority = priority + 0.25 * shortestManhattenDistance(newBoard, current_target, board)
+                                priority = priority + 0.25 * shortestManhattenDistance(newBoard, current_target)
                                 
                                 
                                 if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
@@ -120,7 +120,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     return (updatedBoard, coords)
 
 #Finds the closest block to the target in terms of manhatten distance
-def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
+def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord):
     min_dist = BOARD_SIZE + BOARD_SIZE
     
     for piece in board:
@@ -142,7 +142,7 @@ def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord)
     rowPieceLeft = rowEstimatePiecesRemain(board, target)
     columnPieceLeft = columnEstimatePiecesRemain(board, target)
     #Checks whether a block can't be accessed in the column
-    #Checks whether a block can't be accessed 
+
     checkCol = checkBlockedTargetCol(board, target)
     if checkCol[0] == True:
         #checks which the row above/below or column left/right will take the least blocks to give access to target column
@@ -152,7 +152,7 @@ def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord)
 
     #Checks whether a block can't be accessed in the row
     checkRow = checkBlockedTargetRow(board, target)
-        #Checks whether a block can't be accessed
+
     if checkRow[0] == True:
         #checks which the row above/below or column left/right will take the least blocks to give access to target row
         rows = min(rowEstimatePiecesRemain(board, target.up()), rowEstimatePiecesRemain(board, target.down()))
@@ -168,6 +168,7 @@ def checkBlockedTargetRow(board: dict[Coord, PlayerColor], target: Coord):
     blocked = False
     colStart = 0
     colEnd = 0
+
     for block in range(BOARD_SIZE):
         #If block can't be accessed
         if possibleBlock and Coord(target.r, block) in board:
@@ -201,6 +202,7 @@ def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord):
     blocked = False
     rowstart = 0
     rowend = 0
+
     for block in range(BOARD_SIZE):
         #If block can't be accessed 
         if possibleBlock and Coord(block, target.c) in board:
@@ -208,12 +210,15 @@ def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord):
             rowstart = possiblerowstart
             blocked = True
             rowend = block 
+
         #If block isn't filled and is in between a filled block, check if block can be accessed
         elif filledBlock and Coord(block, target.c) not in board:
+
             if(possibleBlock == False):
                 possiblerowstart = block
             possibleBlock = True
             filledBlock = False
+
             #Checks if block can be accessed from either column above or below it
             if(Coord(block , (target.c + 1)% BOARD_SIZE) not in board or Coord(block, (target.c -1)% BOARD_SIZE) not in board):
                 possibleBlock = False
@@ -232,6 +237,7 @@ def rowEstimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
     rowPieceLeft = 0
     count = 0
     check = 0
+
     for i in range(BOARD_SIZE):
         #If a block is in the path
         if (board.get(Coord(target.r, i)) != None):
@@ -248,6 +254,7 @@ def rowEstimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
         #If board has blank space
         if board.get(Coord(target.r, i )) == None:
                      count += 1
+
         #If the piece equals             
         if(count == PIECE_LENGTH):
             rowPieceLeft += 1
@@ -313,73 +320,73 @@ def straightVerticalBlock():
     """
     Provides coordinates for a generical shape of a straight vertical block
     """
-    return [Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0)]   
+    return (Vector2(0,0), Vector2(1, 0), Vector2(2, 0), Vector2(3, 0))
 def straightHorizontalBlock():
     """
     Provides coordinates for a generical shape of a straight Horizontal block
     """
-    return [Vector2(0, 0), Vector2(0, 1), Vector2(0, 2), Vector2(0, 3)]
+    return (Vector2(0, 0), Vector2(0, 1), Vector2(0, 2), Vector2(0, 3))
 
 def squareBlock():
     """
     Provides coordinates for a generical shape of Square block
     """
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,1))
 
 # 'Up' Rotation Relative to T shape
 def TBlockLeft():
     """
     Provides coordinates for a generical shape of a T Block
     """
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1,1))
 def TblockUp():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,1))
 def TBlockDown():
-    return[Vector2(0,0), Vector2(1,-1), Vector2(1,0), Vector2(1,1)]
+    return(Vector2(0,0), Vector2(1,-1), Vector2(1,0), Vector2(1,1))
 def TBlockRight():
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(1, -1))
 
 # 'Up' Rotation Relative to L shape
 def LBlockUp():
     """
     Provides coordinates for a generical shape of a L block
     """
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,1))
 def LBlockRight():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,0))
 def LBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(2,1))
 def LBlockLeft():
-    return[Vector2(0,0), Vector2(1,0), Vector2(1,-1), Vector2(1,-2)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(1,-1), Vector2(1,-2))
 
 # 'Up' Rotation Relative to J shape
 def JBlockRight():
     """
     Provides coordinates for a generical shape of a J block
     """
-    return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(1,2))
 def JBlockDown():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(2,0))
 def JBlockLeft():
-    return[Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(0,2), Vector2(1,2))
 def JBlockUp():
-    return[Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,-1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(2,0), Vector2(2,-1))
 
 # Horizonal spans 3 across, 2 up. Vice versa for Vertical
 def ZBlockHorizontal():
     """
     Provides coordinates for a generical shape of a Z block
     """
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(1,1), Vector2(1,2))
 def ZBlockVertical():
-    return[Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(1, -1), Vector2(2, -1))
 def SBlockVertical():
     """
     Provides coordinates for a generical shape of a S block
     """
-    return[Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1)]
+    return(Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(2,1))
 def SBlockHorizontal():
-    return[Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,-1)]
+    return(Vector2(0,0), Vector2(0,1), Vector2(1,0), Vector2(1,-1))
 
 
 # Adapted from heapq.py to allow for comparison of priority but storage of a tuple
