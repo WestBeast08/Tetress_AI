@@ -72,7 +72,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord):
 
                                 newCost = totalCost + 1
                                 priority = newCost + (estimate_number_pieces_remain(newBoard, current_target))
-                                priority = priority + 0.25 * find_closestCR(newBoard, current_target, board)
+                                priority = priority + 0.25 * shortestManhattenDistance(newBoard, current_target, board)
                                 
                                 
                                 if rowBlocksFilled(newBoard, target.r) == BOARD_SIZE or columnBlocksFilled(newBoard, target.c) == BOARD_SIZE:
@@ -120,7 +120,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     return (updatedBoard, coords)
 
 #Finds the closest block to the target in terms of manhatten distance
-def find_closestCR(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
+def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord, beforeBoard: dict[Coord, PlayerColor]):
     min_dist = BOARD_SIZE + BOARD_SIZE
     
     for piece in board:
@@ -139,15 +139,15 @@ def emptyCellHeuristic(board: dict[Coord, PlayerColor], target: Coord):
 
 #Estimates how many pieces still need to be placed within the target's row/column
 def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord):
-    rowPieceLeft = rowEstimateNumberPiecesRemain(board, target)
-    columnPieceLeft = columnEstimateRemainingPieces(board, target)
+    rowPieceLeft = rowEstimatePiecesRemain(board, target)
+    columnPieceLeft = columnEstimatePiecesRemain(board, target)
     #Checks whether a block can't be accessed in the column
     #Checks whether a block can't be accessed 
     checkCol = checkBlockedTargetCol(board, target)
     if checkCol[0] == True:
         #checks which the row above/below or column left/right will take the least blocks to give access to target column
-        rows = min(rowEstimateNumberPiecesRemain(board, Coord(checkCol[1], target.c).up()), rowEstimateNumberPiecesRemain(board, Coord(checkCol[2], target.c)))
-        columns = min(columnEstimateRemainingPieces(board, target.left()), columnEstimateRemainingPieces(board, target.right()))
+        rows = min(rowEstimatePiecesRemain(board, Coord(checkCol[1], target.c).up()), rowEstimatePiecesRemain(board, Coord(checkCol[2], target.c)))
+        columns = min(columnEstimatePiecesRemain(board, target.left()), columnEstimatePiecesRemain(board, target.right()))
         columnPieceLeft += min(rows, columns)
 
     #Checks whether a block can't be accessed in the row
@@ -155,8 +155,8 @@ def estimate_number_pieces_remain(board: dict[Coord, PlayerColor], target:Coord)
         #Checks whether a block can't be accessed
     if checkRow[0] == True:
         #checks which the row above/below or column left/right will take the least blocks to give access to target row
-        rows = min(rowEstimateNumberPiecesRemain(board, target.up()), rowEstimateNumberPiecesRemain(board, target.down()))
-        columns = columnEstimateRemainingPieces(board, Coord(target.r, checkRow[1]).left()) + columnEstimateRemainingPieces(board, Coord(target.r, checkRow[2]))
+        rows = min(rowEstimatePiecesRemain(board, target.up()), rowEstimatePiecesRemain(board, target.down()))
+        columns = columnEstimatePiecesRemain(board, Coord(target.r, checkRow[1]).left()) + columnEstimatePiecesRemain(board, Coord(target.r, checkRow[2]))
         rowPieceLeft += min(rows, columns)
    
     return min(columnPieceLeft, rowPieceLeft)
@@ -228,7 +228,7 @@ def checkBlockedTargetCol(board: dict[Coord, PlayerColor], target: Coord):
     return (True, rowstart, rowend)
 
 #Estimates how many pieces we must place to complete a row 
-def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
+def rowEstimatePiecesRemain(board: dict[Coord, PlayerColor], target:Coord):
     rowPieceLeft = 0
     count = 0
     check = 0
@@ -259,8 +259,8 @@ def rowEstimateNumberPiecesRemain(board: dict[Coord, PlayerColor], target:Coord)
     return rowPieceLeft
 
 #Estimates how many pieces we must place to complete a column
-def columnEstimateRemainingPieces(board: dict[Coord, PlayerColor], target: Coord):
-    space = False
+def columnEstimatePiecesRemain(board: dict[Coord, PlayerColor], target: Coord):
+    
     columnPieceLeft = 0
     count = 0
     check = 0
