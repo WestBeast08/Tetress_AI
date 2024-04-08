@@ -329,7 +329,7 @@ def isValidSquare(board: dict[Coord, PlayerColor], square: Coord):
     if square in board:
         return False
 
-    for translation in (Direction.Up(), Direction.Down(), Direction.Left(), Direction.Right()):
+    for translation in (Direction.Up, Direction.Down, Direction.Left, Direction.Right):
         if square + translation in board and board[square + translation] == PlayerColor.RED:
             return True
 
