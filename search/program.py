@@ -107,7 +107,7 @@ def columnBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
     return filled
 
 # Make sure move is valid at placePosition before calling function
-def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Vector2):
+def addMove(piece: tuple[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Vector2):
     '''
     Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     '''
@@ -117,7 +117,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     for vector in piece:
         updatedBoard[relativePosition + vector] = PlayerColor.RED
         coords.append(relativePosition + vector)
-    return (updatedBoard, coords)
+    return (updatedBoard, tuple(coords))
 
 #Finds the closest block to the target in terms of manhatten distance
 def shortestManhattenDistance(board: dict[Coord, PlayerColor], target: Coord):
@@ -295,12 +295,12 @@ def columnEstimatePiecesRemain(board: dict[Coord, PlayerColor], target: Coord):
     return columnPieceLeft
 
 # Assume that (0, 0) is the base position of a piece. None return means specified translation is out of bounds of the piece
-def isValidTranslation(piece: list[Vector2], translation: Vector2):
+def isValidTranslation(piece: tuple[Vector2], translation: Vector2):
     if(translation in piece):
         return True
     return False
 
-def isValidPosition(board: dict[Coord, PlayerColor], piece: list[Vector2], placePosition: Coord):
+def isValidPosition(board: dict[Coord, PlayerColor], piece: tuple[Vector2], placePosition: Coord):
     for block in piece:
         if (placePosition + block) in board:
             return False
