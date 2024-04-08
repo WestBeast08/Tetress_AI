@@ -10,9 +10,9 @@ BOARD_SIZE = 11
 PIECE_LENGTH = 4
 
 def search(board: dict[Coord, PlayerColor], target: Coord):
-    '''
+    """
     Uses a min heap priority queue storing the heuristic value, board, total cost, and made moves of the current state
-    '''
+    """
     pq = PriorityQueue()
     initialCost = 0
     initialMoves = []
@@ -100,7 +100,7 @@ def colBlocksFilled(board: dict[Coord, PlayerColor], columnIndex: int):
 
 def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition: Coord, translation: Vector2):
     """
-    Adds specific piece to the board returning the updated board and the coords of the added piece
+    Adds specific piece to the board (need to allow for moving in negative direction next after testing)
     """
     coords = []
     updatedBoard = board.copy()
@@ -108,7 +108,7 @@ def addMove(piece: list[Vector2], board: dict[Coord, PlayerColor], placePosition
     for vector in piece:
         updatedBoard[relativePosition + vector] = PlayerColor.RED
         coords.append(relativePosition + vector)
-    return (updatedBoard, coords)
+    return (updatedBoard, tuple(coords))
 
 def shortestDistance(board: dict[Coord, PlayerColor], target: Coord):
     """
